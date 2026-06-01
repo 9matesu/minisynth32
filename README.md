@@ -15,8 +15,6 @@ MiniSynth32 é um sintetizador digital baseado em ESP32-S3 com interface web par
 - [Estrutura sugerida do repositório](#estrutura-sugerida-do-repositório)
 - [Fluxo de execução](#fluxo-de-execução)
 - [Como rodar](#como-rodar)
-- [Protocolo de comunicação](#protocolo-de-comunicação)
-- [Status do projeto](#status-do-projeto)
 
 ## Visão geral
 
@@ -78,40 +76,30 @@ Responsabilidades esperadas do back-end:
 
 ## Banco de dados
 
-O banco de dados previsto é SQLite, adotado como armazenamento leve e local, sem servidor dedicado [file:3]. Esse banco deve ser usado para salvar presets e histórico de sessão, atendendo aos requisitos de persistência do projeto [file:3].
-
-Uma modelagem mínima recomendada inclui:
-
-- `presets`: identificação, nome, descrição, data de criação e atualização
-- `preset_params`: snapshot dos parâmetros associados ao preset
-- `session_history`: eventos relevantes de operação ou restauração de estado
-
-Como o escopo atualizado removeu o MIDI mapping, essa parte não deve aparecer como módulo funcional do sistema, mesmo que estivesse prevista em versões anteriores dos requisitos [file:3].
+O banco de dados utilizado foi o SQLite, adotado como armazenamento leve e local, sem servidor dedicado. Esse banco foi usado para salvar presets e histórico de sessão.
 
 ## Áudio e saída analógica
 
-A geração de áudio é responsabilidade do ESP32-S3, enquanto a conversão do sinal digital para áudio analógico estéreo é feita pelo PCM5102A [file:3]. O requisito do projeto define saída estéreo por conector P2 de 3,5 mm, usando esse DAC como etapa de conversão antes da conexão com fones, caixas amplificadas ou entrada de monitoramento [file:3].
+A geração de áudio é responsabilidade do ESP32-S3, enquanto a conversão do sinal digital para áudio analógico estéreo é feita pelo PCM5102A. O requisito do projeto define saída estéreo por conector P2 de 3,5 mm, usando esse DAC como etapa de conversão antes da conexão com fones, caixas amplificadas ou entrada de monitoramento.
 
-O PCM5102A é um DAC estéreo com interface PCM compatível com formatos como I2S e dados de 16, 24 e 32 bits, com taxa de amostragem de 8 kHz até 384 kHz e SNR típico de 112 dB [cite:1]. O componente possui driver de linha integrado, saída em nível de linha de aproximadamente 2,1 VRMS, dispensa capacitores de bloqueio DC na saída e pode operar com conexão I2S de três fios graças ao PLL interno, que elimina a exigência de clock mestre dedicado em muitos cenários [cite:1].
+O PCM5102A é um DAC estéreo com interface PCM compatível com formatos como I2S e dados de 16, 24 e 32 bits, com taxa de amostragem de 8 kHz até 384 kHz e SNR típico de 112 dB. 
 
-Na prática, o fluxo de áudio funciona assim:
+Na prática, o fluxo de áudio segue:
 
-1. O motor de síntese no ESP32 gera amostras digitais de áudio [file:3].
-2. Essas amostras são transmitidas ao PCM5102A por interface PCM/I2S [file:3][cite:1].
-3. O PCM5102A converte os dados digitais em sinal analógico estéreo de nível de linha [cite:1].
-4. O sinal convertido é encaminhado ao conector P2 de 3,5 mm para monitoração externa [file:3].
-
-O requisito não funcional do firmware também prevê operação do DAC em 44,1 kHz ou 48 kHz. [file:3][cite:1].
+1. O motor de síntese no ESP32 gera amostras digitais de áudio.
+2. Essas amostras são transmitidas ao PCM5102A por interface PCM/I2S.
+3. O PCM5102A converte os dados digitais em sinal analógico mono.
+4. O sinal convertido é encaminhado ao conector P2 de 3,5 mm para monitoração externa.
 
 ## Hardware principal
 
-O conjunto principal descrito para o projeto inclui os seguintes componentes [file:4]:
+O conjunto principal descrito para o projeto inclui os seguintes componentes:
 
-- ESP32-S3 como microcontrolador principal [file:4]
-- PCM5102A como DAC estéreo [file:3][cite:1]
-- Display OLED SSD1306 de 0,96 polegadas para exibição local de parâmetros [file:3][file:4]
-- Potenciômetros de 10K para controle em tempo real [file:3][file:4]
-- Entrada USB para comunicação com controlador MIDI e/ou conexão serial com PC [file:4]
+- ESP32-S3
+- PCM5102A 
+- Display OLED SSD1306 de 0,96 polegadas
+- Potenciômetros de 10K
+- Entrada USB para comunicação com controlador MIDI e/ou conexão serial com PC
 
 ## Estrutura do repositório
 
@@ -142,12 +130,12 @@ minisynth32/
 
 ## Fluxo de execução
 
-1. O ESP32-S3 inicializa o motor de áudio e a interface com o PCM5102A [file:3].
-2. O firmware passa a receber eventos locais e atualizar o estado interno do sintetizador [file:3].
-3. O back-end abre a porta serial USB e sincroniza os parâmetros recebidos do ESP32 [file:3].
-4. O front-end conecta-se ao servidor por WebSocket para refletir o estado em tempo real [file:3].
-5. Alterações feitas na interface são enviadas ao servidor e repassadas ao ESP32 [file:3].
-6. Presets podem ser persistidos e recuperados via API REST e SQLite [file:3].
+1. O ESP32-S3 inicializa o motor de áudio e a interface com o PCM5102A
+2. O firmware passa a receber eventos locais e atualizar o estado interno do sintetizador
+3. O back-end abre a porta serial USB e sincroniza os parâmetros recebidos do ESP32
+4. O front-end conecta-se ao servidor por WebSocket para refletir o estado em tempo real
+5. Alterações feitas na interface são enviadas ao servidor e repassadas ao ESP32 
+6. Presets podem ser persistidos e recuperados via API REST e SQLite
 
 ## Como rodar
 
@@ -155,10 +143,10 @@ minisynth32/
 
 - Node.js instalado no ambiente de desenvolvimento
 - npm instalado
-- ambiente Linux para deploy do servidor, conforme requisito do projeto [file:3]
-- ESP32-S3 programado com o firmware do sintetizador [file:3][file:4]
-- módulo PCM5102A ligado ao ESP32 e à saída de áudio do equipamento [file:3][cite:1]
-- cabo USB para comunicação serial entre ESP32 e computador/host [file:3][file:4]
+- ambiente Linux para deploy do servidor, conforme requisito do projeto
+- ESP32-S3 programado com o firmware do sintetizador
+- módulo PCM5102A ligado ao ESP32 e à saída de áudio do equipamento
+- cabo USB para comunicação serial entre ESP32 e computador/host
 
 ### 1. Clonar o repositório
 
@@ -184,7 +172,7 @@ npm install
 npm run dev
 ```
 
-O back-end deve iniciar o servidor HTTP, a camada REST, o WebSocket e a rotina de comunicação serial com o ESP32 [file:3].
+O back-end deve iniciar o servidor HTTP, a camada REST, o WebSocket e a rotina de comunicação serial com o ESP32.
 
 ### 4. Programar e conectar o ESP32
 
@@ -193,7 +181,7 @@ Compile e grave o firmware no ESP32-S3. Em seguida:
 - conecte o ESP32 ao computador por USB
 - confirme a porta serial disponível no sistema
 - configure o back-end para abrir essa porta
-- ligue o módulo PCM5102A às linhas de áudio digital do ESP32 e à saída P2 do circuito [file:3][cite:1]
+- ligue o módulo PCM5102A às linhas de áudio digital do ESP32 e à saída P2 do circuito
 
 ### 5. Executar em produção
 
@@ -208,21 +196,3 @@ npm install
 npm run start
 ```
 
-## Protocolo de comunicação
-
-O protocolo entre back-end e ESP32 pode ser mantido simples, baseado em mensagens JSON por linha sobre serial USB. Isso é coerente com a necessidade de sincronizar parâmetros de forma bidirecional sem acoplar o servidor ao código interno do firmware [file:3].
-
-Exemplos:
-
-```json
-{"type":"param_set","path":"osc1.level","value":72}
-{"type":"state_update","path":"filter.cutoff","value":11600}
-{"type":"preset_load","name":"Patch Inicial"}
-{"type":"ack","path":"filter.cutoff","ok":true}
-```
-
-No lado do front-end, a atualização de estado deve ocorrer via WebSocket, enquanto operações de persistência, como salvar ou listar presets, podem ocorrer via REST [file:3].
-
-## Status do projeto
-
-O escopo já documentado estabelece base funcional para front-end React, back-end Node.js/Express, comunicação serial com ESP32-S3, persistência em SQLite e saída de áudio estéreo com PCM5102A [file:3][file:4][cite:1]. A interface atual também demonstra aderência visual e funcional ao objetivo do projeto, com foco em manipulação direta de parâmetros e gerenciamento de presets [image:1].
