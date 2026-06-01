@@ -1,6 +1,6 @@
 # MiniSynth32
 
-MiniSynth32 é um sintetizador digital baseado em ESP32-S3 com interface web para controle em tempo real, gerenciamento de presets e visualização de parâmetros. O projeto combina firmware embarcado, back-end Node.js e front-end React para formar uma arquitetura integrada voltada à síntese sonora, operação em Linux e persistência local com SQLite [file:3][file:4].
+MiniSynth32 é um sintetizador digital baseado em ESP32-S3 com interface web para controle em tempo real, gerenciamento de presets e visualização de parâmetros. O projeto combina firmware embarcado, back-end Node.js e front-end React para formar uma arquitetura integrada voltada à síntese sonora, operação em Linux e persistência local com SQLite. Parte do projeto de curricularização do curso de Análise e Desenvolvimento de Sistemas da FATEC Cruzeiro, foi desenvolvido para o programa Acelera 01/2026.
 
 ## Sumário
 
@@ -20,17 +20,17 @@ MiniSynth32 é um sintetizador digital baseado em ESP32-S3 com interface web par
 
 ## Visão geral
 
-O sistema foi concebido para executar síntese no ESP32-S3, transmitir estados e parâmetros ao servidor por conexão serial USB e expor esse estado ao front-end por WebSocket em tempo real [file:3]. Além disso, o servidor deve disponibilizar API REST para presets, persistir dados em SQLite e servir os arquivos estáticos do front-end React em ambiente Linux [file:3][file:4].
+O sistema foi concebido para executar síntese no ESP32-S3, transmitir estados e parâmetros ao servidor por conexão serial USB e expor esse estado ao front-end por WebSocket em tempo real. Além disso, o servidor deve disponibilizar API REST para presets, persistir dados em SQLite e servir os arquivos estáticos do front-end React em ambiente Linux. O desenvolvimento ocorreu com auxílio de ferramentas de IA, tal como Gemini, Codex e Claude Code.
 
-A interface mostrada no projeto organiza os controles em torno de parâmetros típicos de um sintetizador subtrativo, com seções dedicadas a seleção de forma de onda, afinação, nível, envelope ADSR, filtro, arpeggiator, monitor de onda, teclado virtual e diretório de presets [image:1]. Esse desenho é coerente com os requisitos funcionais já definidos para exibição e alteração de parâmetros do sintetizador em tempo real [file:3].
+A interface do projeto organiza os controles em torno de parâmetros típicos de um sintetizador subtrativo, com seções dedicadas a seleção de forma de onda, afinação, nível, envelope ADSR, filtro, arpeggiator, monitor de onda, teclado virtual e diretório de presets.
 
 ## Arquitetura
 
-A arquitetura é composta por três camadas principais [file:4]:
+A arquitetura é composta por três camadas principais:
 
-1. **Firmware no ESP32-S3**: responsável pela geração de áudio, leitura de controles locais, processamento de notas e atualização de parâmetros do motor de síntese [file:3].
-2. **Back-end Node.js**: responsável por receber mensagens do ESP32 via serial, repassar estados para o front-end por WebSocket, expor endpoints REST para presets e servir a aplicação web em produção [file:3].
-3. **Front-end React**: responsável pela interface de operação, visualização do estado do sintetizador, edição de parâmetros e gerenciamento de presets [file:3][file:4].
+1. **Firmware no ESP32-S3**: responsável pela geração de áudio, leitura de controles locais, processamento de notas e atualização de parâmetros do motor de síntese.
+2. **Back-end Node.js**: responsável por receber mensagens do ESP32 via serial, repassar estados para o front-end por WebSocket, expor endpoints REST para presets e servir a aplicação web em produção.
+3. **Front-end React**: responsável pela interface de operação, visualização do estado do sintetizador, edição de parâmetros e gerenciamento de presets.
 
 Fluxo resumido:
 
@@ -46,35 +46,35 @@ ESP32-S3 <-> Serial USB <-> Node.js/Express <-> WebSocket/REST <-> React
 
 | Camada | Tecnologia | Papel |
 |---|---|---|
-| Firmware | ESP32-S3 | Geração de áudio e controle embarcado [file:3] |
-| Conversão de áudio | PCM5102A | Conversão digital-analógica estéreo via interface PCM/I2S [file:3][cite:1] |
-| Back-end | Node.js + Express | API REST, serial, WebSocket e hosting do front [file:3][file:4] |
-| Tempo real | WebSocket | Sincronização de parâmetros e estado com a interface [file:3] |
-| Banco de dados | SQLite | Persistência local de presets e histórico de sessão [file:3] |
-| Front-end | React | Interface do sintetizador e operação do usuário [file:3][file:4] |
-| Build tooling | Vite | Empacotamento e desenvolvimento do front-end, conforme a estrutura atual do projeto [image:1] |
-| Sistema-alvo | Linux | Ambiente previsto para execução do servidor [file:3] |
+| Firmware | ESP32-S3 | Geração de áudio e controle embarcado |
+| Conversão de áudio | PCM5102A | Conversão digital-analógica estéreo via interface PCM/I2S |
+| Back-end | Node.js + Express | API REST, serial, WebSocket e hosting do front |
+| Tempo real | WebSocket | Sincronização de parâmetros e estado com a interface |
+| Banco de dados | SQLite | Persistência local de presets e histórico de sessão |
+| Front-end | React | Interface do sintetizador e operação do usuário |
+| Build tooling | Vite | Empacotamento e desenvolvimento do front-end, conforme a estrutura atual do projeto |
+| Sistema-alvo | Linux | Ambiente previsto para execução do servidor |
 
 ## Front-end
 
-O front-end é uma aplicação React orientada a controle em tempo real, com componentes equivalentes a knobs, toggles, seletores e teclado virtual, organizados em painéis funcionais [file:3][image:1]. Pela interface disponível, os grupos visuais principais incluem seleção de waveform, controle de tune e level, arpeggiator, envelope ADSR, filtro, monitor de onda, teclado virtual e gerenciamento de presets [image:1].
+O front-end é uma aplicação React orientada a controle em tempo real, com componentes equivalentes a knobs, toggles, seletores e teclado virtual, organizados em painéis funcionais. Pela interface disponível, os grupos visuais principais incluem seleção de waveform, controle de tune e level, arpeggiator, envelope ADSR, filtro, monitor de onda, teclado virtual e gerenciamento de presets.
 
-Nos requisitos funcionais, a interface deve exibir parâmetros de OSC1, filtro, ADSR e arpeggiator, além de enviar alterações ao ESP32 por intermédio do back-end via WebSocket [file:3]. Também deve permitir salvar e carregar presets via API REST, reforçando a separação entre camada de apresentação e camada de persistência [file:3].
+Nos requisitos funcionais, a interface deve exibir parâmetros de OSC1, filtro, ADSR e arpeggiator, além de enviar alterações ao ESP32 por intermédio do back-end via WebSocket. Também deve permitir salvar e carregar presets via API REST, reforçando a separação entre camada de apresentação e camada de persistência.
 
 ## Back-end
 
-O back-end é a camada de integração do sistema. Ele deve receber dados do ESP32 por porta serial USB e repassá-los ao front-end por WebSocket, além de aceitar comandos vindos da interface e encaminhá-los de volta ao dispositivo embarcado [file:3].
+O back-end é a camada de integração do sistema. Ele deve receber dados do ESP32 por porta serial USB e repassá-los ao front-end por WebSocket, além de aceitar comandos vindos da interface e encaminhá-los de volta ao dispositivo embarcado.
 
-Além da comunicação em tempo real, o servidor precisa oferecer CRUD completo de presets via API REST com Express, persistência em SQLite, logs de falha para serial e API, e capacidade de servir os arquivos estáticos do front-end React em produção [file:3]. O deploy-alvo é Linux, sem dependência de banco externo ou componentes proprietários [file:3].
+Além da comunicação em tempo real, o servidor precisa oferecer CRUD completo de presets via API REST com Express, persistência em SQLite, logs de falha para serial e API, e capacidade de servir os arquivos estáticos do front-end React em produção. O deploy-alvo é Linux, sem dependência de banco externo ou componentes proprietários.
 
 Responsabilidades esperadas do back-end:
 
-- gerenciamento da porta serial do ESP32 [file:3]
-- sincronização de estado via WebSocket [file:3]
-- persistência de presets em SQLite [file:3]
-- exposição de API REST para consulta e atualização de presets [file:3]
-- hosting do build do front-end [file:3]
-- registro de erros operacionais [file:3]
+- gerenciamento da porta serial do ESP32
+- sincronização de estado via WebSocket
+- persistência de presets em SQLite
+- exposição de API REST para consulta e atualização de presets
+- hosting do build do front-end
+- registro de erros operacionais
 
 ## Banco de dados
 
