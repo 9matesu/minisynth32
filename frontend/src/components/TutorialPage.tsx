@@ -2,146 +2,146 @@ import { useState } from 'react';
 
 const TUTORIAL_STEPS = [
   {
-    title: 'Seleção de Forma de Onda',
+    title: 'Selecao de Forma de Onda',
     description: 'Escolha entre 4 formas de onda diferentes no setor OSC 1.',
     details: [
-      'Square (Quadrada): Som brilhante e percussivo',
-      'Sine (Senoidal): Som puro e macio',
-      'Saw (Dente de serra): Som rico em harmônicos',
-      'Noise (Ruído): Som ruidoso e metálico',
+      'Square (quadrada): som brilhante e percussivo',
+      'Sine (senoidal): som puro e macio',
+      'Saw (dente de serra): som rico em harmonicos',
+      'Noise (ruido): som ruidoso e metalico',
     ],
-    tip: 'Comece com sine para entender harmônicos básicos.',
+    tip: 'Comece com Sine para entender harmonicos basicos.',
   },
   {
-    title: 'Ajuste de Frequência',
-    description: 'Use o knob "Tune" para alterar a frequência base do oscillador.',
+    title: 'Ajuste de Frequencia',
+    description: 'Use o knob "Tune" para alterar a frequencia base do oscilador.',
     details: [
-      'Faixa de 20Hz a 20kHz (audição humana)',
-      'Valores baixos = tons graves',
-      'Valores altos = tons agudos',
+      'Faixa de 20 Hz a 20 kHz, dentro da audicao humana',
+      'Valores baixos criam tons graves',
+      'Valores altos criam tons agudos',
     ],
-    tip: 'Experimente valores entre 30-80 para sons musicais.',
+    tip: 'Experimente valores entre 30 e 80 para sons musicais.',
   },
   {
     title: 'Controle de Volume',
-    description: 'O knob "Level" controla o volume de saída do oscillador.',
+    description: 'O knob "Level" controla o volume de saida do oscilador.',
     details: [
-      'Evite distorção mantendo valores moderados',
-      'Use para balancear múltiplas fontes (se houver)',
-      'Importante para mixing final',
+      'Evite distorcao mantendo valores moderados',
+      'Use para equilibrar multiplas fontes, quando houver',
+      'Importante para a mixagem final',
     ],
-    tip: 'Mantenha entre 50-90 para melhor dinâmica.',
+    tip: 'Mantenha entre 50 e 90 para melhor dinamica.',
   },
   {
     title: 'ADSR - Attack',
-    description: 'Attack controla quanto tempo leva para o som atingir o volume máximo.',
+    description: 'Attack controla quanto tempo o som leva para atingir o volume maximo.',
     details: [
-      'Valores baixos (0-20): Ataque percussivo, como um piano',
-      'Valores médios (30-50): Ataque suave, como um violino',
-      'Valores altos (60-100): Fade-in gradual, como um pad',
+      'Valores baixos (0-20): ataque percussivo, como um piano',
+      'Valores medios (30-50): ataque suave, como um violino',
+      'Valores altos (60-100): entrada gradual, como um pad',
     ],
     tip: 'Para sons percussivos, use valores baixos.',
   },
   {
     title: 'ADSR - Decay',
-    description: 'Decay determina o tempo para cair do pico até o nível sustentado.',
+    description: 'Decay determina o tempo para cair do pico ate o nivel sustentado.',
     details: [
-      'Após o attack, o som desce para o nível de sustain',
-      'Valores baixos: transição rápida',
-      'Valores altos: transição lenta e musical',
+      'Depois do attack, o som desce para o nivel de sustain',
+      'Valores baixos: transicao rapida',
+      'Valores altos: transicao lenta e musical',
     ],
-    tip: 'Combinado com sustain, cria o "corpo" do som.',
+    tip: 'Combinado com sustain, cria o corpo do som.',
   },
   {
     title: 'ADSR - Sustain',
-    description: 'Sustain é o nível mantido enquanto a nota está sendo tocada.',
+    description: 'Sustain e o nivel mantido enquanto a nota esta sendo tocada.',
     details: [
-      'Valores altos: som continua forte',
-      'Valores baixos: som praticamente desaparece (staccato)',
-      'Afeta como o som "respira"',
+      'Valores altos: o som continua forte',
+      'Valores baixos: o som praticamente desaparece, criando staccato',
+      'Afeta como o som respira',
     ],
     tip: 'Para pads, use sustain alto. Para notas curtas, use baixo.',
   },
   {
     title: 'ADSR - Release',
-    description: 'Release controla quanto tempo o som leva para desaparecer após soltar a nota.',
+    description: 'Release controla quanto tempo o som leva para desaparecer apos soltar a nota.',
     details: [
-      'Valores baixos: som "seco", corte abrupto',
+      'Valores baixos: som seco, com corte abrupto',
       'Valores altos: cauda sonora longa e ressonante',
-      'Cria sensação de espaço e reverb natural',
+      'Cria sensacao de espaco e reverb natural',
     ],
-    tip: 'Aumente para sons mais "naturais" e envolventes.',
+    tip: 'Aumente para sons mais naturais e envolventes.',
   },
   {
     title: 'Ativar o Filtro',
-    description: 'O filtro remove ou atenua frequências altas do som.',
+    description: 'O filtro remove ou atenua frequencias altas do som.',
     details: [
-      'Clique no botão de toggle "Filter" para ativar',
-      'Filtros são essenciais para síntese subtrativa',
+      'Clique no botao "Filter" para ativar',
+      'Filtros sao essenciais para sintese subtrativa',
       'Cria movimento e interesse no timbre',
     ],
-    tip: 'Ative o filtro para controle tímbrico avançado.',
+    tip: 'Ative o filtro para controle timbrico avancado.',
   },
   {
-    title: 'Cutoff - Frequência de Corte',
-    description: 'Define onde o filtro começa a remover frequências.',
+    title: 'Cutoff - Frequencia de Corte',
+    description: 'Define onde o filtro comeca a remover frequencias.',
     details: [
-      'Valores baixos: som escuro, sem frequências altas',
-      'Valores altos: som brilhante, mais detalhes',
-      'Faixa: 20Hz a 20kHz',
+      'Valores baixos: som escuro, sem frequencias altas',
+      'Valores altos: som brilhante, com mais detalhes',
+      'Faixa: 20 Hz a 20 kHz',
     ],
-    tip: 'Varie cutoff para criar movimento dinâmico.',
+    tip: 'Varie cutoff para criar movimento dinamico.',
   },
   {
-    title: 'Resonance - Ênfase',
-    description: 'Aumenta o volume exatamente na frequência de corte (Cutoff).',
+    title: 'Resonance - Enfase',
+    description: 'Aumenta o volume exatamente na frequencia de corte.',
     details: [
       'Valores baixos: filtro suave',
-      'Valores altos: pico pronunciado, efeito "wah-wah"',
-      'Pode causar oscilação em valores extremos',
+      'Valores altos: pico pronunciado, efeito wah-wah',
+      'Pode causar oscilacao em valores extremos',
     ],
-    tip: 'Use com cuidado - valores altos criam efeitos dramáticos.',
+    tip: 'Use com cuidado: valores altos criam efeitos dramaticos.',
   },
   {
     title: 'Envelope do Filtro',
-    description: 'Modula o cutoff usando o envelope ADSR, criando varreduras dinâmicas.',
+    description: 'Modula o cutoff usando o envelope ADSR, criando varreduras dinamicas.',
     details: [
-      'Valores positivos: cutoff sobe com a nota (brilho aumenta)',
-      'Valores negativos: cutoff desce com a nota (escurece)',
-      'Cria efeito de "sweep" característico da síntese',
+      'Valores positivos: cutoff sobe com a nota, aumentando o brilho',
+      'Valores negativos: cutoff desce com a nota, escurecendo o som',
+      'Cria o efeito de varredura caracteristico da sintese',
     ],
-    tip: 'Experimente valores entre 40-80 para efeitos musicais.',
+    tip: 'Experimente valores entre 40 e 80 para efeitos musicais.',
   },
   {
     title: 'Slope do Filtro',
     description: 'Determina a agressividade do filtro.',
     details: [
-      '12 dB: Filtro suave, menos agressivo',
-      '24 dB: Filtro mais forte, mais ressonante',
-      'Mais steep = maior contraste tímbrico',
+      '12 dB: filtro suave, menos agressivo',
+      '24 dB: filtro mais forte e mais ressonante',
+      'Maior inclinacao cria maior contraste timbrico',
     ],
-    tip: 'Use 24 dB para efeitos mais dramáticos.',
+    tip: 'Use 24 dB para efeitos mais dramaticos.',
   },
   {
     title: 'Presets e Salvamento',
-    description: 'Salve suas criações como presets para reutilização.',
+    description: 'Salve suas criacoes como presets para reutilizacao.',
     details: [
-      'Clique "SAVE" para guardar os ajustes atuais',
+      'Clique em "SAVE" para guardar os ajustes atuais',
       'Navegue entre presets com as setas',
-      'Ótimo para construir paleta sonora pessoal',
+      'Otimo para construir uma paleta sonora pessoal',
     ],
-    tip: 'Salve frequentemente enquanto experimenta!',
+    tip: 'Salve frequentemente enquanto experimenta.',
   },
   {
     title: 'Criando Seu Primeiro Som',
-    description: 'Guia prático para criar um som interessante.',
+    description: 'Guia pratico para criar um som interessante.',
     details: [
-      '1. Comece com Square wave, Tune ~60',
-      '2. Attack ~10, Decay ~30, Sustain ~70, Release ~20',
-      '3. Ative o filtro, Cutoff ~50, Resonance ~40',
-      '4. Filter Envelope ~60 para movimento',
+      '1. Comece com onda Square e Tune perto de 60',
+      '2. Use Attack perto de 10, Decay perto de 30, Sustain perto de 70 e Release perto de 20',
+      '3. Ative o filtro, com Cutoff perto de 50 e Resonance perto de 40',
+      '4. Use Filter Envelope perto de 60 para criar movimento',
     ],
-    tip: 'Ajuste pequenas mudanças e ouça o resultado!',
+    tip: 'Faca pequenos ajustes e ouca o resultado.',
   },
 ];
 
@@ -166,12 +166,8 @@ export function TutorialPage({ onClose }: { onClose: () => void }) {
     <div className="tutorial-page">
       <div className="tutorial-container">
         <div className="tutorial-header">
-          <button
-            className="tutorial-close-btn"
-            onClick={onClose}
-            aria-label="Fechar tutorial"
-          >
-            ✕
+          <button className="tutorial-close-btn" onClick={onClose} aria-label="Fechar tutorial">
+            x
           </button>
           <h1 className="tutorial-title">Guia de Aprendizado</h1>
           <p className="tutorial-step-counter">
@@ -195,7 +191,7 @@ export function TutorialPage({ onClose }: { onClose: () => void }) {
             </div>
 
             <div className="tutorial-tip">
-              <span className="tutorial-tip-icon">💡</span>
+              <span className="tutorial-tip-icon">Dica</span>
               <p className="tutorial-tip-text">{step.tip}</p>
             </div>
           </div>
@@ -219,7 +215,7 @@ export function TutorialPage({ onClose }: { onClose: () => void }) {
             disabled={currentStep === 0}
             aria-label="Etapa anterior"
           >
-            ← Anterior
+            &lt;- Anterior
           </button>
 
           <div className="tutorial-dots">
@@ -237,9 +233,9 @@ export function TutorialPage({ onClose }: { onClose: () => void }) {
             className="tutorial-nav-btn tutorial-nav-btn--next"
             onClick={nextStep}
             disabled={currentStep === totalSteps - 1}
-            aria-label="Próxima etapa"
+            aria-label="Proxima etapa"
           >
-            Próxima →
+            Proxima -&gt;
           </button>
         </div>
       </div>

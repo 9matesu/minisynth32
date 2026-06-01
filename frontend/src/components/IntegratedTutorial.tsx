@@ -44,7 +44,7 @@ const CLASS_TUTORIALS: Record<string, TutorialStep[]> = {
       details: [
         'Evite distorção em valores muito altos',
         'Mantenha dinâmica musical',
-        'Importante para mixing com múltiplas fontes',
+        'Importante para mixagem com múltiplas fontes',
       ],
       tip: 'Mantenha entre 50-90 para melhor dinâmica.',
     },
@@ -56,7 +56,7 @@ const CLASS_TUTORIALS: Record<string, TutorialStep[]> = {
       details: [
         'Valores baixos (0-20): Ataque percussivo',
         'Valores médios (30-50): Ataque suave',
-        'Valores altos (60-100): Fade-in gradual',
+        'Valores altos (60-100): entrada gradual',
       ],
       tip: 'Para sons percussivos, use valores baixos.',
     },
@@ -66,7 +66,7 @@ const CLASS_TUTORIALS: Record<string, TutorialStep[]> = {
       description: 'Ajuste o "Decay" para o tempo de queda até o nível sustentado.',
       targetControl: 'knob-decay',
       details: [
-        'Afeta a transição do pico ao sustain',
+        'Afeta a transição do pico ao nível de sustain',
         'Valores baixos: transição rápida',
         'Valores altos: transição musical',
       ],
@@ -99,7 +99,7 @@ const CLASS_TUTORIALS: Record<string, TutorialStep[]> = {
     {
       id: 'filter-toggle',
       title: 'Ativar o Filtro',
-      description: 'Clique no botão toggle do filtro para ativar o controle de timbre.',
+      description: 'Clique no botão do filtro para ativar o controle de timbre.',
       targetControl: 'filter-toggle',
       details: [
         'Filtros removem ou atenuam frequências altas',
@@ -152,7 +152,7 @@ const CLASS_TUTORIALS: Record<string, TutorialStep[]> = {
       details: [
         '12 dB: Filtro suave e sutil',
         '24 dB: Filtro mais agressivo',
-        'Steep = maior contraste tímbrico',
+        'Maior inclinação = maior contraste tímbrico',
       ],
       tip: 'Use 24 dB para efeitos dramáticos.',
     },
@@ -531,7 +531,7 @@ const CLASS_TUTORIALS: Record<string, TutorialStep[]> = {
       targetControl: 'wave-select',
       details: [
         'Square: agressivo e brilhante',
-        'Rich harmonic content',
+        'Conteúdo harmônico rico',
         'Perfeito para leads duros',
       ],
       tip: 'Clique para selecionar Square (1ª opção).',
@@ -539,7 +539,7 @@ const CLASS_TUTORIALS: Record<string, TutorialStep[]> = {
     {
       id: 'lead-tune',
       title: 'Frequência do Lead',
-      description: 'Configure Tune em 60-80 para range alto.',
+      description: 'Configure Tune em 60-80 para uma faixa alta.',
       targetControl: 'knob-tune',
       details: [
         'Faixa alta: lead agudo e cortante',
@@ -640,7 +640,7 @@ const CLASS_TUTORIALS: Record<string, TutorialStep[]> = {
       details: [
         'Ressonância alta: destaque pronunciado',
         'Cria pico característico',
-        'Adiciona "character" agressivo',
+        'Adiciona caráter agressivo',
       ],
       tip: 'Valores 55-65 criam sons clássicos.',
     },
@@ -676,7 +676,8 @@ interface IntegratedTutorialProps {
   selectedClass: string | null;
   completedTasks: Set<string>;
   onTaskComplete: (taskId: string) => void;
-  highlightedControl: string | null;
+  onHighlightChange?: (controlId: string | null) => void;
+  onClassComplete?: (classId: string) => void;
 }
 
 export function IntegratedTutorial({
@@ -684,7 +685,8 @@ export function IntegratedTutorial({
   selectedClass,
   completedTasks,
   onTaskComplete,
-  highlightedControl,
+  onHighlightChange,
+  onClassComplete,
 }: IntegratedTutorialProps) {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
@@ -693,14 +695,30 @@ export function IntegratedTutorial({
   const totalSteps = tutorials.length;
   const isCompleted = currentStep ? completedTasks.has(currentStep.id) : false;
 
+  // Notify App about the current highlighted control
   useEffect(() => {
-    if (isCompleted && currentStepIndex < totalSteps - 1) {
-      const timer = setTimeout(() => {
-        setCurrentStepIndex(currentStepIndex + 1);
-      }, 500);
-      return () => clearTimeout(timer);
+    if (currentStep && onHighlightChange) {
+      onHighlightChange(currentStep.targetControl);
     }
-  }, [isCompleted, currentStepIndex, totalSteps]);
+  }, [currentStepIndex, currentStep, onHighlightChange]);
+
+  // Auto-advance to next step when current step is completed
+  useEffect(() => {
+    if (isCompleted) {
+      if (currentStepIndex < totalSteps - 1) {
+        const timer = setTimeout(() => {
+          setCurrentStepIndex(currentStepIndex + 1);
+        }, 500);
+        return () => clearTimeout(timer);
+      } else if (onClassComplete && selectedClass) {
+        // Last step completed, wait a bit then complete class
+        const timer = setTimeout(() => {
+          onClassComplete(selectedClass);
+        }, 1000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [isCompleted, currentStepIndex, totalSteps, onClassComplete, selectedClass]);
 
   if (!selectedClass || !currentStep) {
     return null;
@@ -751,7 +769,7 @@ export function IntegratedTutorial({
         </ul>
 
         <div className="integrated-tutorial__tip">
-          <span className="integrated-tutorial__tip-icon">💡</span>
+          <span className="integrated-tutorial__tip-icon">Dica</span>
           <p>{currentStep.tip}</p>
         </div>
       </div>

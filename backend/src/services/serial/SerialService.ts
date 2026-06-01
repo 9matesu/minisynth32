@@ -1,0 +1,150 @@
+import { EventEmitter } from 'node:events';
+import { ReadlineParser } from '@serialport/parser-readline';
+import { SerialPort } from 'serialport';
+import type { SerialMessage, SerialStatusPayload } from '../../types/serial.js';
+import type { SynthParamPath } from '../../types/synth.js';
+import { encodeSerialMessage, parseSerialLine } from './SerialProtocol.js';
+import { logger } from '../../utils/logger.js';
+
+interface SerialServiceOptions {
+  mock: boolean;
+  port: string;
+  baudRate: number;
+}
+
+export class SerialService {
+  private readonly events = new EventEmitter();
+  private serialPort: SerialPort | null = null;
+  private mockTimer: NodeJS.Timeout | null = null;
+  private status: SerialStatusPayload;
+
+  constructor(private readonly options: SerialServiceOptions) {
+    this.status = {
+      status: options.mock ? 'mock' : 'disconnected',
+      port: options.port,
+      mock: options.mock,
+    };
+  }
+
+  start() {
+    if (this.options.mock) {
+      this.startMock();
+      return;
+    }
+
+    this.setStatus('connecting');
+    const port = new SerialPort({ path: this.options.port, baudRate: this.options.baudRate, autoOpen: false });
+    this.serialPort = port;
+
+    const parser = port.pipe(new ReadlineParser({ delimiter: '\n' }));
+    parser.on('data', (line: string) => this.handleLine(line));
+    port.on('error', (error) => this.emitError(error));
+    port.on('close', () => this.setStatus('disconnected'));
+
+    port.open((error) => {
+      if (error) {
+        this.emitError(error);
+        return;
+      }
+      this.setStatus('connected');
+    });
+  }
+
+  stop() {
+    if (this.mockTimer) {
+      clearInterval(this.mockTimer);
+      this.mockTimer = null;
+    }
+
+    if (this.serialPort?.isOpen) {
+      this.serialPort.close();
+    }
+  }
+
+  sendParamSet(path: SynthParamPath, value: unknown) {
+    this.write({ type: 'param_set', path, value });
+  }
+
+  write(message: SerialMessage) {
+    const encoded = encodeSerialMessage(message);
+
+    if (this.options.mock) {
+      logger.info('Mock serial write', { message });
+      this.events.emit('message', { type: 'ack', path: 'path' in message ? message.path : undefined, ok: true } satisfies SerialMessage);
+      return;
+    }
+
+    if (!this.serialPort?.isOpen) {
+      this.emitError(new Error('Porta serial nao esta aberta.'));
+      return;
+    }
+
+    this.serialPort.write(encoded, (error) => {
+      if (error) {
+        this.emitError(error);
+      }
+    });
+  }
+
+  getStatus() {
+    return { ...this.status };
+  }
+
+  onMessage(listener: (message: SerialMessage) => void) {
+    this.events.on('message', listener);
+  }
+
+  onStatus(listener: (status: SerialStatusPayload) => void) {
+    this.events.on('status', listener);
+  }
+
+  onError(listener: (error: Error) => void) {
+    this.events.on('error', listener);
+  }
+
+  private startMock() {
+    this.setStatus('mock');
+    let uptime = 0;
+
+    this.mockTimer = setInterval(() => {
+      uptime += 1000;
+      const cutoff = Math.round(35 + Math.sin(uptime / 5000) * 20 + 20);
+      this.events.emit('message', { type: 'heartbeat', uptime } satisfies SerialMessage);
+      this.events.emit('message', { type: 'state_update', path: 'filter.cutoff', value: cutoff } satisfies SerialMessage);
+      this.events.emit('message', {
+        type: 'state_update',
+        path: 'waveDisplay.samples',
+        value: Array.from({ length: 32 }, (_, index) => Math.sin(index / 4 + uptime / 400)),
+      } satisfies SerialMessage);
+    }, 1000);
+  }
+
+  private handleLine(line: string) {
+    try {
+      const message = parseSerialLine(line.trim());
+      this.events.emit('message', message);
+    } catch (error) {
+      this.emitError(error instanceof Error ? error : new Error(String(error)));
+    }
+  }
+
+  private setStatus(status: SerialStatusPayload['status']) {
+    this.status = {
+      status,
+      port: this.options.port,
+      mock: this.options.mock,
+    };
+    this.events.emit('status', this.getStatus());
+  }
+
+  private emitError(error: Error) {
+    this.status = {
+      status: 'error',
+      port: this.options.port,
+      mock: this.options.mock,
+    };
+    logger.error('Serial error', { message: error.message });
+    this.events.emit('error', error);
+    this.events.emit('status', this.getStatus());
+  }
+}

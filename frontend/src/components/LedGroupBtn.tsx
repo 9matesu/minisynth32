@@ -42,7 +42,7 @@ export function LedGroupBtn({
           type="button"
           className="mfb-btn"
           onClick={onClick}
-          aria-label={`Wave selector ${buttonNum}`}
+          aria-label={`Seletor de onda ${buttonNum}`}
           data-help-text={helpText}
           data-help-mode={helpMode}
         />

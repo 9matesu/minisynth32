@@ -10,12 +10,12 @@ export function HelpButton({ isActive, onClick }: HelpButtonProps) {
         type="button"
         className={`mfb-btn help-btn ${isActive ? 'help-btn--active' : ''}`}
         onClick={onClick}
-        aria-label="Toggle help mode"
-        title={isActive ? 'Help mode ON' : 'Help mode OFF'}
+        aria-label="Alternar modo de ajuda"
+        title={isActive ? 'Modo de ajuda ligado' : 'Modo de ajuda desligado'}
       >
         ?
       </button>
-      <span className="mfb-label">{isActive ? 'Help' : 'Help'}</span>
+      <span className="mfb-label">Ajuda</span>
     </div>
   );
 }

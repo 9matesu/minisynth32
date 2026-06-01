@@ -8,6 +8,25 @@ import { TutorialPage } from './components/TutorialPage';
 import { IntegratedTutorial } from './components/IntegratedTutorial';
 import { ClassSelector } from './components/ClassSelector';
 
+const PIANO_KEYS = [
+  { note: 'C4', key: 'A', type: 'white', isBlack: false },
+  { note: 'C#4', key: 'W', type: 'black', isBlack: true },
+  { note: 'D4', key: 'S', type: 'white', isBlack: false },
+  { note: 'D#4', key: 'E', type: 'black', isBlack: true },
+  { note: 'E4', key: 'D', type: 'white', isBlack: false },
+  { note: 'F4', key: 'F', type: 'white', isBlack: false },
+  { note: 'F#4', key: 'T', type: 'black', isBlack: true },
+  { note: 'G4', key: 'G', type: 'white', isBlack: false },
+  { note: 'G#4', key: 'Y', type: 'black', isBlack: true },
+  { note: 'A4', key: 'H', type: 'white', isBlack: false },
+  { note: 'A#4', key: 'U', type: 'black', isBlack: true },
+  { note: 'B4', key: 'J', type: 'white', isBlack: false },
+  { note: 'C5', key: 'K', type: 'white', isBlack: false },
+  { note: 'C#5', key: 'O', type: 'black', isBlack: true },
+  { note: 'D5', key: 'L', type: 'white', isBlack: false },
+  { note: 'D#5', key: 'P', type: 'black', isBlack: true },
+];
+
 function WaveSine() {
   return (
     <svg className="wave-icon" viewBox="0 0 24 12" aria-hidden="true">
@@ -25,21 +44,15 @@ function WaveNoise() {
 }
 
 function WaveDisplay({ wave }: { wave: number }) {
-  const paths = [
-    'M0 30 L18 30 L18 8 L36 8 L36 30 L54 30 L54 8 L72 8 L72 30 L90 30 L90 8 L108 8 L108 30 L126 30 L126 8 L144 8 L144 30 L162 30',
-    'M0 30 C12 8, 28 8, 40 30 C52 52, 68 52, 80 30 C92 8, 108 8, 120 30 C132 52, 148 52, 162 30',
-    'M0 30 L27 8 L54 30 L81 52 L108 30 L135 8 L162 30',
-    'M0 36 L8 12 L16 40 L24 18 L32 46 L40 14 L48 38 L56 16 L64 44 L72 20 L80 34 L88 17 L96 43 L104 13 L112 39 L120 22 L128 37 L136 15 L148 41 L162 24',
-  ];
-
+  // Paths removed for future real-time audio input
   return (
     <div className="wave-display">
       <div className="wave-display__header">
-        <span className="mfb-label">Wave Monitor</span>
+        <span className="mfb-label">Monitor de Onda</span>
       </div>
 
       <div className="wave-display__screen">
-        <svg viewBox="0 0 162 60" className="wave-display__svg" aria-label="Visualização da onda">
+        <svg viewBox="0 0 162 60" className="wave-display__svg" aria-label="Visualizacao da onda">
           <defs>
             <pattern id="scopeGrid" width="18" height="15" patternUnits="userSpaceOnUse">
               <path d="M 18 0 L 0 0 0 15" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
@@ -48,14 +61,7 @@ function WaveDisplay({ wave }: { wave: number }) {
 
           <rect x="0" y="0" width="162" height="60" fill="url(#scopeGrid)" />
           <line x1="0" y1="30" x2="162" y2="30" stroke="rgba(255,255,255,0.14)" strokeWidth="1" />
-          <path
-            d={paths[wave]}
-            fill="none"
-            stroke="#f3f0d4"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
+          {/* Real-time waveform path will be injected here */}
         </svg>
       </div>
     </div>
@@ -76,11 +82,13 @@ type Patch = {
   resonance: number;
   envelope: number;
   filterSlope: 12 | 24;
+  arpOn: boolean;
+  arpRate: number; // 0: 1/32, 1: 1/24, 2: 1/16, 3: 1/8, 4: 1/4
 };
 
 const INITIAL_PRESETS: Patch[] = [
   {
-    name: 'Init Patch',
+    name: 'Patch Inicial',
     wave: 0,
     tune: 50,
     level: 72,
@@ -93,9 +101,11 @@ const INITIAL_PRESETS: Patch[] = [
     resonance: 36,
     envelope: 42,
     filterSlope: 12,
+    arpOn: false,
+    arpRate: 2,
   },
   {
-    name: 'Deep Bass',
+    name: 'Baixo Profundo',
     wave: 0,
     tune: 38,
     level: 88,
@@ -108,9 +118,11 @@ const INITIAL_PRESETS: Patch[] = [
     resonance: 52,
     envelope: 58,
     filterSlope: 24,
+    arpOn: false,
+    arpRate: 2,
   },
   {
-    name: 'Glass Lead',
+    name: 'Lead de Vidro',
     wave: 2,
     tune: 64,
     level: 76,
@@ -123,9 +135,11 @@ const INITIAL_PRESETS: Patch[] = [
     resonance: 48,
     envelope: 44,
     filterSlope: 12,
+    arpOn: false,
+    arpRate: 2,
   },
   {
-    name: 'Tape Organ',
+    name: 'Orgao de Fita',
     wave: 1,
     tune: 48,
     level: 68,
@@ -138,9 +152,11 @@ const INITIAL_PRESETS: Patch[] = [
     resonance: 18,
     envelope: 20,
     filterSlope: 12,
+    arpOn: false,
+    arpRate: 2,
   },
   {
-    name: 'Soft Pluck',
+    name: 'Pluck Suave',
     wave: 2,
     tune: 56,
     level: 70,
@@ -153,9 +169,11 @@ const INITIAL_PRESETS: Patch[] = [
     resonance: 30,
     envelope: 76,
     filterSlope: 24,
+    arpOn: true,
+    arpRate: 3,
   },
   {
-    name: 'Square Drive',
+    name: 'Square Saturado',
     wave: 0,
     tune: 52,
     level: 90,
@@ -168,9 +186,11 @@ const INITIAL_PRESETS: Patch[] = [
     resonance: 62,
     envelope: 54,
     filterSlope: 24,
+    arpOn: false,
+    arpRate: 2,
   },
   {
-    name: 'Night Pad',
+    name: 'Pad Noturno',
     wave: 1,
     tune: 46,
     level: 64,
@@ -183,9 +203,11 @@ const INITIAL_PRESETS: Patch[] = [
     resonance: 24,
     envelope: 36,
     filterSlope: 12,
+    arpOn: false,
+    arpRate: 2,
   },
   {
-    name: 'Mono Pulse',
+    name: 'Pulso Mono',
     wave: 0,
     tune: 58,
     level: 84,
@@ -198,6 +220,8 @@ const INITIAL_PRESETS: Patch[] = [
     resonance: 58,
     envelope: 50,
     filterSlope: 24,
+    arpOn: false,
+    arpRate: 2,
   },
 ];
 
@@ -209,9 +233,17 @@ export default function App() {
   const [saveFlash, setSaveFlash] = useState(false);
   const [helpMode, setHelpMode] = useState(false);
   const [tutorialMode, setTutorialMode] = useState(false);
+  const [isPresetExpanded, setIsPresetExpanded] = useState(false);
+  const [isTutorialExpanded, setIsTutorialExpanded] = useState(true);
+  const [isPianoExpanded, setIsPianoExpanded] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [newPresetName, setNewPresetName] = useState('');
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
+  const [completedClasses, setCompletedClasses] = useState<Set<string>>(new Set());
   const [completedTasks, setCompletedTasks] = useState<Set<string>>(new Set());
   const [highlightedControl, setHighlightedControl] = useState<string | null>(null);
+  const [activeNotes, setActiveNotes] = useState<Set<string>>(new Set());
+
   const [lastKnobValues, setLastKnobValues] = useState<Record<string, number>>({
     tune: patch.tune,
     level: patch.level,
@@ -275,39 +307,183 @@ export default function App() {
   };
 
   const updatePatch = <K extends keyof Patch>(key: K, value: Patch[K]) => {
-    setPatch((current) => ({
-      ...current,
-      [key]: value,
-    }));
+    setPatch((current) => {
+      const next = { ...current, [key]: value };
+      
+      // Immediately check if this satisfies the current tutorial task
+      if (tutorialMode && highlightedControl) {
+        // Map patch keys to task IDs or use specific checks
+        const taskMap: Record<string, string> = {
+          wave: 'wave-select',
+          tune: 'tune',
+          level: 'level',
+          attack: 'attack',
+          decay: 'decay',
+          sustain: 'sustain',
+          release: 'release',
+          cutoff: 'cutoff',
+          resonance: 'resonance',
+          envelope: 'envelope',
+          filterOn: 'filter-toggle',
+          filterSlope: 'filter-slope'
+        };
+        
+        const taskId = taskMap[key as string];
+        if (taskId && !completedTasks.has(taskId)) {
+          // If the mapped task matches the current highlighted control or is related to the action
+          if (highlightedControl.includes(taskId) || taskId.includes(highlightedControl.replace('knob-', ''))) {
+            setCompletedTasks(prev => new Set(prev).add(taskId));
+          }
+        }
+      }
+      
+      return next;
+    });
   };
 
-  const savePreset = () => {
-    setPresets((current) =>
-      current.map((preset, index) =>
-        index === presetIndex
-          ? {
-              ...patch,
-              name: preset.name,
-            }
-          : preset
-      )
-    );
-
-    setPatch((current) => ({
-      ...current,
-      name: presets[presetIndex].name,
-    }));
+  const savePreset = (newName: string) => {
+    const newPreset = { ...patch, name: newName };
+    setPresets([...presets, newPreset]);
+    setPresetIndex(presets.length);
+    setPatch(newPreset);
 
     setSaveFlash(true);
     window.setTimeout(() => setSaveFlash(false), 700);
   };
 
+  const handleLearnClick = () => {
+    setCurrentView('synth');
+    setTutorialMode(true);
+  };
+
+  const formatTime = (val: number) => {
+    const ms = (val / 100) * 5000;
+    return ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${Math.round(ms)}ms`;
+  };
+
+  const formatHz = (val: number) => {
+    const hz = (val / 100) * 20000;
+    return hz >= 1000 ? `${(hz / 1000).toFixed(1)}kHz` : `${Math.round(hz)}Hz`;
+  };
+
+  const formatTune = (val: number) => {
+    const oct = Math.round((val / 25) - 2);
+    return oct > 0 ? `+${oct}` : `${oct}`;
+  };
+
+  useEffect(() => {
+    if (currentView !== 'synth') return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.repeat) return;
+      const keyMap = PIANO_KEYS.find(k => k.key === e.key.toUpperCase());
+      if (keyMap && !activeNotes.has(keyMap.note)) {
+        // Here we would send MIDI Note On to backend
+        console.log(`MIDI Note On: ${keyMap.note}`);
+        setActiveNotes(prev => new Set(prev).add(keyMap.note));
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      const keyMap = PIANO_KEYS.find(k => k.key === e.key.toUpperCase());
+      if (keyMap && activeNotes.has(keyMap.note)) {
+        // Here we would send MIDI Note Off to backend
+        console.log(`MIDI Note Off: ${keyMap.note}`);
+        setActiveNotes(prev => {
+          const next = new Set(prev);
+          next.delete(keyMap.note);
+          return next;
+        });
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [currentView, activeNotes]);
+
+  const handleNoteStart = (note: string) => {
+    if (!activeNotes.has(note)) {
+      console.log(`MIDI Note On: ${note}`);
+      setActiveNotes(prev => new Set(prev).add(note));
+    }
+  };
+
+  const handleNoteEnd = (note: string) => {
+    if (activeNotes.has(note)) {
+      console.log(`MIDI Note Off: ${note}`);
+      setActiveNotes(prev => {
+        const next = new Set(prev);
+        next.delete(note);
+        return next;
+      });
+    }
+  };
+
   return (
     <>
-      {currentView === 'front' && <FrontPage onNavigate={setCurrentView} />}
+      {currentView === 'front' && <FrontPage onNavigate={setCurrentView} onLearn={handleLearnClick} />}
       {currentView === 'tutorial' && <TutorialPage onClose={() => setCurrentView('front')} />}
       {currentView === 'synth' && (
-        <div className={`app-shell ${tutorialMode ? 'app-shell--with-tutorial' : ''}`}>
+        <div className="app-layout">
+          <header className="app-header">
+            <button 
+              className="back-to-front-btn"
+              onClick={() => {
+                setCurrentView('front');
+                setTutorialMode(false);
+              }}
+            >
+              ← Voltar
+            </button>
+          </header>
+          <div className={`app-shell ${tutorialMode ? 'app-shell--with-tutorial' : ''}`}>
+        {tutorialMode && (
+          <aside className={`tutorial-panel ${isTutorialExpanded ? 'is-expanded' : 'is-collapsed'}`} aria-label="Tutorial interativo">
+            <div className="tutorial-panel__content-wrapper">
+              <div className="tutorial-panel__content">
+                {selectedClass === null ? (
+                  <div className="class-selector-container">
+                    <ClassSelector 
+                      selectedClass={selectedClass} 
+                      onSelectClass={setSelectedClass} 
+                      completedClasses={completedClasses}
+                    />
+                  </div>
+                ) : (
+                  <IntegratedTutorial
+                    onClose={() => {
+                      setTutorialMode(false);
+                      setSelectedClass(null);
+                      setCompletedTasks(new Set());
+                      setHighlightedControl(null);
+                    }}
+                    onClassComplete={(classId) => {
+                      setCompletedClasses(new Set(completedClasses).add(classId));
+                      setSelectedClass(null);
+                      setCompletedTasks(new Set());
+                      setHighlightedControl(null);
+                    }}
+                    selectedClass={selectedClass}
+                    completedTasks={completedTasks}
+                    onTaskComplete={(taskId) => setCompletedTasks(new Set(completedTasks).add(taskId))}
+                    onHighlightChange={setHighlightedControl}
+                  />
+                )}
+              </div>
+            </div>
+            <button 
+              className="tutorial-panel-toggle" 
+              onClick={() => setIsTutorialExpanded(!isTutorialExpanded)}
+              aria-label={isTutorialExpanded ? "Recolher tutorial" : "Expandir tutorial"}
+            >
+              {isTutorialExpanded ? '◀' : '▶'}
+            </button>
+          </aside>
+        )}
       <section className="synth-panel-wrap">
         <div className="mfb-chassis">
           <div className="mfb-faceplate">
@@ -318,17 +494,12 @@ export default function App() {
 
             <header className="top-bar top-bar--compact">
               <div className="top-left">
-                <div className="power-block">
-                  <span className="mfb-label-small">↓</span>
-                  <span className="mfb-label">Power</span>
-                  <div className="mfb-btn mt-1"></div>
-                  <span className="mfb-label-small mt-1">ON/OFF</span>
-                </div>
+                {/* Power block removed */}
               </div>
 
               <div className="top-center">
                 <h1 className="mfb-title">minisynth32</h1>
-                <span className="mfb-label">1 OSC · Shared ADSR · Filter</span>
+                <span className="mfb-label">1 OSC · ADSR compartilhado · Filtro</span>
               </div>
 
               <div className="top-right">
@@ -352,28 +523,60 @@ export default function App() {
             <main className="synth-layout">
               <section className="synth-block">
                 <div className="block-inner block-inner--osc">
-                  <div className="osc-panel">
-                    <div className={`control-col control-col--selector ${tutorialMode && !completedTasks.has('wave-select') ? 'control-highlighted' : ''}`} id="wave-select">
-                      <LedGroupBtn
-                        leds={[<WaveSquare />, <WaveSine />, <WaveSaw />, <WaveNoise />]}
-                        customLabels="Wave Select"
-                        buttonNum="1"
-                        activeIdx={patch.wave}
-                        onClick={() => {
-                          updatePatch('wave', ((patch.wave + 1) % 4) as Patch['wave']);
-                          if (tutorialMode) setCompletedTasks(new Set(completedTasks).add('wave-select'));
-                        }}
-                        helpText="Select waveform: Square, Sine, Sawtooth, or Noise"
-                        helpMode={helpMode}
-                      />
+                  <div className="osc-panel-wrapper">
+                    <div className="osc-panel">
+                      <div className={`control-col control-col--selector ${tutorialMode && highlightedControl === 'wave-select' ? 'control-highlighted' : ''}`} id="wave-select">
+                        <LedGroupBtn
+                          leds={[<WaveSquare />, <WaveSine />, <WaveSaw />, <WaveNoise />]}
+                          customLabels="Wave Select"
+                          buttonNum="1"
+                          activeIdx={patch.wave}
+                          onClick={() => {
+                            updatePatch('wave', ((patch.wave + 1) % 4) as Patch['wave']);
+                            if (tutorialMode) setCompletedTasks(new Set(completedTasks).add('wave-select'));
+                          }}
+                          helpText="Selecione a forma de onda: Square, Sine, Sawtooth ou Noise"
+                          helpMode={helpMode}
+                        />
+                      </div>
+
+                      <div className={`control-col control-col--knob ${tutorialMode && highlightedControl === 'knob-tune' ? 'control-highlighted' : ''}`} id="knob-tune">
+                        <Knob label="Tune" value={patch.tune} onChange={(value) => updatePatch('tune', value)} helpText="Ajusta a altura/frequencia do oscilador" helpMode={helpMode} formatValue={formatTune} step={25} />
+                      </div>
+
+                      <div className={`control-col control-col--knob ${tutorialMode && highlightedControl === 'knob-level' ? 'control-highlighted' : ''}`} id="knob-level">
+                        <Knob label="Level" value={patch.level} onChange={(value) => updatePatch('level', value)} helpText="Controla o volume de saida do oscilador" helpMode={helpMode} />
+                      </div>
                     </div>
 
-                    <div className={`control-col control-col--knob ${tutorialMode && !completedTasks.has('tune') ? 'control-highlighted' : ''}`} id="knob-tune">
-                      <Knob label="Tune" value={patch.tune} onChange={(value) => updatePatch('tune', value)} helpText="Adjust pitch/frequency of the oscillator" helpMode={helpMode} />
-                    </div>
+                    <div className="arp-panel">
+                      <div className="filter-switch-col">
+                        <span className="mfb-label">Arp</span>
+                        <button
+                          type="button"
+                          className={`filter-toggle ${patch.arpOn ? 'is-on' : ''}`}
+                          onClick={() => updatePatch('arpOn', !patch.arpOn)}
+                          aria-pressed={patch.arpOn}
+                        >
+                          <span className="filter-toggle__led"></span>
+                        </button>
+                        <span className="mfb-label-small">{patch.arpOn ? 'ON' : 'OFF'}</span>
+                      </div>
 
-                    <div className={`control-col control-col--knob ${tutorialMode && !completedTasks.has('level') ? 'control-highlighted' : ''}`} id="knob-level">
-                      <Knob label="Level" value={patch.level} onChange={(value) => updatePatch('level', value)} helpText="Control output volume of the oscillator" helpMode={helpMode} />
+                      <div className="control-col control-col--knob">
+                        <Knob 
+                          label={['1/32', '1/24', '1/16', '1/8', '1/4'][patch.arpRate] || 'Rate'} 
+                          value={patch.arpRate * 25} 
+                          onChange={(value) => {
+                            const step = Math.round(value / 25);
+                            updatePatch('arpRate', step);
+                          }} 
+                          helpText="Arpeggiator Rate" 
+                          helpMode={helpMode} 
+                          hideValue={true}
+                          step={25}
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -385,20 +588,20 @@ export default function App() {
 
               <section className="synth-block">
                 <div className="block-inner block-inner--three">
-                  <div className={`control-col control-col--knob ${tutorialMode && !completedTasks.has('attack') ? 'control-highlighted' : ''}`} id="knob-attack">
-                    <Knob label="Attack" value={patch.attack} onChange={(value) => updatePatch('attack', value)} helpText="Time for envelope to reach peak" helpMode={helpMode} />
+                  <div className={`control-col control-col--knob ${tutorialMode && highlightedControl === 'knob-attack' ? 'control-highlighted' : ''}`} id="knob-attack">
+                    <Knob label="Attack" value={patch.attack} onChange={(value) => updatePatch('attack', value)} helpText="Tempo para o envelope atingir o pico" helpMode={helpMode} formatValue={formatTime} />
                   </div>
 
-                  <div className={`control-col control-col--knob ${tutorialMode && !completedTasks.has('decay') ? 'control-highlighted' : ''}`} id="knob-decay">
-                    <Knob label="Decay" value={patch.decay} onChange={(value) => updatePatch('decay', value)} helpText="Time to fall from peak to sustain level" helpMode={helpMode} />
+                  <div className={`control-col control-col--knob ${tutorialMode && highlightedControl === 'knob-decay' ? 'control-highlighted' : ''}`} id="knob-decay">
+                    <Knob label="Decay" value={patch.decay} onChange={(value) => updatePatch('decay', value)} helpText="Tempo para cair do pico ate o nivel de sustain" helpMode={helpMode} formatValue={formatTime} />
                   </div>
 
-                  <div className={`control-col control-col--knob ${tutorialMode && !completedTasks.has('sustain') ? 'control-highlighted' : ''}`} id="knob-sustain">
-                    <Knob label="Sustain" value={patch.sustain} onChange={(value) => updatePatch('sustain', value)} helpText="Held level while note is sustained" helpMode={helpMode} />
+                  <div className={`control-col control-col--knob ${tutorialMode && highlightedControl === 'knob-sustain' ? 'control-highlighted' : ''}`} id="knob-sustain">
+                    <Knob label="Sustain" value={patch.sustain} onChange={(value) => updatePatch('sustain', value)} helpText="Nivel mantido enquanto a nota e sustentada" helpMode={helpMode} />
                   </div>
 
-                  <div className={`control-col control-col--knob ${tutorialMode && !completedTasks.has('release') ? 'control-highlighted' : ''}`} id="knob-release">
-                    <Knob label="Release" value={patch.release} onChange={(value) => updatePatch('release', value)} helpText="Time to fade after note release" helpMode={helpMode} />
+                  <div className={`control-col control-col--knob ${tutorialMode && highlightedControl === 'knob-release' ? 'control-highlighted' : ''}`} id="knob-release">
+                    <Knob label="Release" value={patch.release} onChange={(value) => updatePatch('release', value)} helpText="Tempo para desaparecer apos soltar a nota" helpMode={helpMode} formatValue={formatTime} />
                   </div>
                 </div>
 
@@ -407,7 +610,7 @@ export default function App() {
 
               <section className="synth-block">
                 <div className="block-inner block-inner--filter-extended">
-                  <div className={`filter-switch-col ${tutorialMode && !completedTasks.has('filter-toggle') ? 'control-highlighted' : ''}`} id="filter-toggle">
+                  <div className={`filter-switch-col ${tutorialMode && highlightedControl === 'filter-toggle' ? 'control-highlighted' : ''}`} id="filter-toggle">
                     <span className="mfb-label">Filter</span>
 
                     <button
@@ -425,19 +628,19 @@ export default function App() {
                     <span className="mfb-label-small">{patch.filterOn ? 'ON' : 'OFF'}</span>
                   </div>
 
-                  <div className={`control-col control-col--knob ${tutorialMode && !completedTasks.has('cutoff') ? 'control-highlighted' : ''}`} id="knob-cutoff">
-                    <Knob label="Cutoff" value={patch.cutoff} onChange={(value) => updatePatch('cutoff', value)} helpText="Filter frequency cutoff point" helpMode={helpMode} />
+                  <div className={`control-col control-col--knob ${tutorialMode && highlightedControl === 'knob-cutoff' ? 'control-highlighted' : ''}`} id="knob-cutoff">
+                    <Knob label="Cutoff" value={patch.cutoff} onChange={(value) => updatePatch('cutoff', value)} helpText="Ponto de corte de frequencia do filtro" helpMode={helpMode} formatValue={formatHz} />
                   </div>
 
-                  <div className={`control-col control-col--knob ${tutorialMode && !completedTasks.has('resonance') ? 'control-highlighted' : ''}`} id="knob-resonance">
-                    <Knob label="Resonance" value={patch.resonance} onChange={(value) => updatePatch('resonance', value)} helpText="Emphasis/Q at cutoff frequency" helpMode={helpMode} />
+                  <div className={`control-col control-col--knob ${tutorialMode && highlightedControl === 'knob-resonance' ? 'control-highlighted' : ''}`} id="knob-resonance">
+                    <Knob label="Resonance" value={patch.resonance} onChange={(value) => updatePatch('resonance', value)} helpText="Enfase/Q na frequencia de corte" helpMode={helpMode} />
                   </div>
 
-                  <div className={`control-col control-col--knob ${tutorialMode && !completedTasks.has('envelope') ? 'control-highlighted' : ''}`} id="knob-envelope">
-                    <Knob label="Envelope" value={patch.envelope} onChange={(value) => updatePatch('envelope', value)} helpText="Amount of envelope modulation on filter" helpMode={helpMode} />
+                  <div className={`control-col control-col--knob ${tutorialMode && highlightedControl === 'knob-envelope' ? 'control-highlighted' : ''}`} id="knob-envelope">
+                    <Knob label="Envelope" value={patch.envelope} onChange={(value) => updatePatch('envelope', value)} helpText="Quantidade de modulacao do envelope no filtro" helpMode={helpMode} />
                   </div>
 
-                  <div className={`filter-mode-col ${tutorialMode && !completedTasks.has('filter-slope') ? 'control-highlighted' : ''}`} id="filter-slope">
+                  <div className={`filter-mode-col ${tutorialMode && highlightedControl === 'filter-slope' ? 'control-highlighted' : ''}`} id="filter-slope">
                     <span className="mfb-label">Slope</span>
 
                     <button
@@ -456,83 +659,150 @@ export default function App() {
                 <span className="cell-title">FILTER</span>
               </section>
             </main>
+            
+            <div className={`piano-roll-container ${isPianoExpanded ? 'is-expanded' : 'is-collapsed'}`}>
+              <div className="piano-roll-header">
+                <span className="mfb-label">Keyboard</span>
+                <button 
+                  className="piano-roll-toggle" 
+                  onClick={() => setIsPianoExpanded(!isPianoExpanded)}
+                  aria-label={isPianoExpanded ? "Recolher teclado" : "Expandir teclado"}
+                >
+                  {isPianoExpanded ? '▼' : '▲'}
+                </button>
+              </div>
+              
+              {isPianoExpanded && (
+                <div className="piano-roll">
+                  <div className="piano-keys">
+                    {PIANO_KEYS.map((key) => (
+                      <div
+                        key={key.note}
+                        className={`piano-key piano-key--${key.type} ${activeNotes.has(key.note) ? 'is-active' : ''}`}
+                        onPointerDown={() => handleNoteStart(key.note)}
+                        onPointerUp={() => handleNoteEnd(key.note)}
+                        onPointerLeave={() => handleNoteEnd(key.note)}
+                      >
+                        <span className="piano-key-label">{key.key}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </section>
 
-      <aside className="preset-panel" aria-label="Preset browser">
-        <div className="preset-panel__header">
-          <div>
-            <span className="preset-panel__eyebrow">Preset Directory</span>
-            <h2 className="preset-panel__title">Presets</h2>
+      <aside className={`preset-panel ${isPresetExpanded ? 'is-expanded' : 'is-collapsed'}`} aria-label="Navegador de presets">
+        <button 
+          className="preset-panel-toggle" 
+          onClick={() => setIsPresetExpanded(!isPresetExpanded)}
+          aria-label={isPresetExpanded ? "Recolher presets" : "Expandir presets"}
+        >
+          {isPresetExpanded ? '▶' : '◀'}
+        </button>
+
+        <div className="preset-panel__content-wrapper">
+          <div className="preset-panel__content">
+            <div className="preset-panel__header">
+              <div>
+                <span className="preset-panel__eyebrow">Diretorio de Presets</span>
+                <h2 className="preset-panel__title">Presets</h2>
+              </div>
+
+              <div className="preset-panel__nav">
+                <button type="button" className="preset-nav-btn" onClick={prevPreset} aria-label="Preset anterior">
+                  ←
+                </button>
+                <button type="button" className="preset-nav-btn" onClick={nextPreset} aria-label="Proximo preset">
+                  →
+                </button>
+              </div>
+            </div>
+
+            <div className="preset-panel__current">
+              <span className="preset-panel__current-label">Atual</span>
+              <strong className="preset-panel__current-name">{activePreset.name}</strong>
+            </div>
+
+            <div className="preset-panel__actions">
+              {isSaving ? (
+                <div className="preset-save-form">
+                  <input
+                    type="text"
+                    value={newPresetName}
+                    onChange={(e) => setNewPresetName(e.target.value)}
+                    placeholder="Nome do preset"
+                    className="preset-save-input"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && newPresetName.trim()) {
+                        savePreset(newPresetName.trim());
+                        setIsSaving(false);
+                      } else if (e.key === 'Escape') {
+                        setIsSaving(false);
+                      }
+                    }}
+                  />
+                  <div className="preset-save-form-actions">
+                    <button 
+                      className="preset-save-confirm"
+                      onClick={() => {
+                        if (newPresetName.trim()) {
+                          savePreset(newPresetName.trim());
+                          setIsSaving(false);
+                        }
+                      }}
+                    >
+                      ✓
+                    </button>
+                    <button 
+                      className="preset-save-cancel"
+                      onClick={() => setIsSaving(false)}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className={`preset-save-btn ${saveFlash ? 'is-saved' : ''} ${tutorialMode && highlightedControl === 'preset-save' ? 'control-highlighted' : ''}`}
+                  onClick={() => {
+                    setIsSaving(true);
+                    setNewPresetName('');
+                    if (tutorialMode) setCompletedTasks(new Set(completedTasks).add('presets'));
+                  }}
+                  id="preset-save"
+                >
+                  SAVE
+                </button>
+              )}
+            </div>
+
+            <div className="preset-directory" role="list">
+              {presets.map((preset, index) => {
+                const active = index === presetIndex;
+
+                return (
+                  <button
+                    key={preset.name}
+                    type="button"
+                    role="listitem"
+                    className={`preset-row ${active ? 'is-active' : ''}`}
+                    onClick={() => loadPreset(index)}
+                  >
+                    <span className="preset-row__tree">{active ? '`-' : '+-'}</span>
+                    <span className="preset-row__name">{preset.name}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-
-          <div className="preset-panel__nav">
-            <button type="button" className="preset-nav-btn" onClick={prevPreset} aria-label="Preset anterior">
-              ←
-            </button>
-            <button type="button" className="preset-nav-btn" onClick={nextPreset} aria-label="Próximo preset">
-              →
-            </button>
-          </div>
-        </div>
-
-        <div className="preset-panel__current">
-          <span className="preset-panel__current-label">Current</span>
-          <strong className="preset-panel__current-name">{activePreset.name}</strong>
-        </div>
-
-        <div className="preset-panel__actions">
-          <button
-            type="button"
-            className={`preset-save-btn ${saveFlash ? 'is-saved' : ''} ${tutorialMode && !completedTasks.has('presets') ? 'control-highlighted' : ''}`}
-            onClick={() => {
-              savePreset();
-              if (tutorialMode) setCompletedTasks(new Set(completedTasks).add('presets'));
-            }}
-            id="preset-save"
-          >
-            SAVE
-          </button>
-        </div>
-
-        <div className="preset-directory" role="list">
-          {presets.map((preset, index) => {
-            const active = index === presetIndex;
-
-            return (
-              <button
-                key={preset.name}
-                type="button"
-                role="listitem"
-                className={`preset-row ${active ? 'is-active' : ''}`}
-                onClick={() => loadPreset(index)}
-              >
-                <span className="preset-row__tree">{active ? '└─' : '├─'}</span>
-                <span className="preset-row__name">{preset.name}</span>
-              </button>
-            );
-          })}
         </div>
       </aside>
-        {tutorialMode && selectedClass === null && (
-          <div className="class-selector-container">
-            <ClassSelector selectedClass={selectedClass} onSelectClass={setSelectedClass} />
-          </div>
-        )}
-        {tutorialMode && selectedClass !== null && (
-          <IntegratedTutorial
-            onClose={() => {
-              setTutorialMode(false);
-              setSelectedClass(null);
-              setCompletedTasks(new Set());
-            }}
-            selectedClass={selectedClass}
-            completedTasks={completedTasks}
-            onTaskComplete={(taskId) => setCompletedTasks(new Set(completedTasks).add(taskId))}
-            highlightedControl={highlightedControl}
-          />
-        )}
+      </div>
       </div>
       )}
     </>

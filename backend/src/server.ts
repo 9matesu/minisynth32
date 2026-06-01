@@ -1,0 +1,90 @@
+import http from 'node:http';
+import { appConfig } from './config/appConfig.js';
+import { createApp } from './app.js';
+import { HealthController } from './controllers/healthController.js';
+import { MidiMappingController } from './controllers/midiMappingController.js';
+import { PresetController } from './controllers/presetController.js';
+import { SynthController } from './controllers/synthController.js';
+import { runMigrations } from './db/migrate.js';
+import { getDatabase } from './db/sqlite/connection.js';
+import { MidiMappingRepository } from './db/repositories/MidiMappingRepository.js';
+import { PresetRepository } from './db/repositories/PresetRepository.js';
+import { MidiMappingService } from './services/midi/MidiMappingService.js';
+import { PresetService } from './services/presets/PresetService.js';
+import { SerialService } from './services/serial/SerialService.js';
+import { SynthStateManager } from './services/synth-state/SynthStateManager.js';
+import { WebSocketService } from './services/websocket/WebSocketService.js';
+import { logger } from './utils/logger.js';
+
+runMigrations();
+
+const db = getDatabase();
+const synthState = new SynthStateManager();
+const serial = new SerialService({
+  mock: appConfig.env.serialMock,
+  port: appConfig.env.serialPort,
+  baudRate: appConfig.env.serialBaudRate,
+});
+
+const presetService = new PresetService(new PresetRepository(db));
+const midiMappingService = new MidiMappingService(new MidiMappingRepository(db));
+
+const app = createApp({
+  controllers: {
+    health: new HealthController(serial),
+    presets: new PresetController(presetService, synthState),
+    midiMappings: new MidiMappingController(midiMappingService),
+    synth: new SynthController(synthState, serial),
+  },
+});
+
+const httpServer = http.createServer(app);
+const websocket = new WebSocketService({
+  httpServer,
+  path: appConfig.wsPath,
+  synthState,
+  serial,
+  presets: presetService,
+});
+
+synthState.onChanged((change) => {
+  if (change.source !== 'serial') {
+    return;
+  }
+  logger.info('Synth state changed from serial', { path: change.path, value: change.value });
+});
+
+serial.onMessage((message) => {
+  switch (message.type) {
+    case 'state_update':
+    case 'param_set':
+      synthState.setParam(message.path, message.value, 'serial');
+      break;
+    case 'heartbeat':
+      logger.info('ESP32 heartbeat', { uptime: message.uptime });
+      break;
+    case 'ack':
+      logger.info('ESP32 ack', { path: message.path, ok: message.ok });
+      break;
+    case 'log':
+      logger[message.level](message.message);
+      break;
+  }
+});
+
+httpServer.listen(appConfig.env.port, appConfig.env.host, () => {
+  logger.info('MiniSynth32 backend started', {
+    rest: `http://${appConfig.env.host}:${appConfig.env.port}${appConfig.apiPrefix}`,
+    websocket: `ws://${appConfig.env.host}:${appConfig.env.port}${appConfig.wsPath}`,
+    serial: serial.getStatus(),
+  });
+  serial.start();
+});
+
+process.on('SIGINT', () => {
+  logger.info('Shutting down');
+  serial.stop();
+  httpServer.close(() => process.exit(0));
+});
+
+void websocket;

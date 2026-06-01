@@ -6,9 +6,12 @@ type KnobProps = {
   onChange: (value: number) => void;
   helpText?: string;
   helpMode?: boolean;
+  formatValue?: (val: number) => string;
+  hideValue?: boolean;
+  step?: number;
 };
 
-export function Knob({ label, value, onChange, helpText, helpMode }: KnobProps) {
+export function Knob({ label, value, onChange, helpText, helpMode, formatValue, hideValue, step }: KnobProps) {
   const [localValue, setLocalValue] = useState(value);
   const [isHovering, setIsHovering] = useState(false);
   const startYRef = useRef(0);
@@ -19,7 +22,12 @@ export function Knob({ label, value, onChange, helpText, helpMode }: KnobProps) 
   }, [value]);
 
   const setSafeValue = (next: number) => {
-    const finalValue = Math.max(0, Math.min(100, Math.round(next)));
+    let finalValue = Math.max(0, Math.min(100, next));
+    if (step) {
+      finalValue = Math.round(finalValue / step) * step;
+    } else {
+      finalValue = Math.round(finalValue);
+    }
     setLocalValue(finalValue);
     onChange(finalValue);
   };
@@ -73,7 +81,7 @@ export function Knob({ label, value, onChange, helpText, helpMode }: KnobProps) 
         className="mfb-knob-wrap"
         role="slider"
         tabIndex={0}
-        aria-label={typeof label === 'string' ? label : 'Knob'}
+        aria-label={typeof label === 'string' ? label : 'Controle giratorio'}
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={localValue}
@@ -83,7 +91,9 @@ export function Knob({ label, value, onChange, helpText, helpMode }: KnobProps) 
         data-help-text={helpText}
         data-help-mode={helpMode}
       >
-        <div className="mfb-knob-value">{localValue}%</div>
+        {!hideValue && (
+          <div className="mfb-knob-value">{formatValue ? formatValue(localValue) : `${localValue}%`}</div>
+        )}
 
         <div
           className="mfb-knob"
