@@ -1,8 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Knob } from './components/Knob';
 import { LedGroupBtn } from './components/LedGroupBtn';
 import { HelpButton } from './components/HelpButton';
 import { WaveSaw, WaveSquare } from './components/Waves';
+import { FrontPage } from './components/FrontPage';
+import { TutorialPage } from './components/TutorialPage';
+import { IntegratedTutorial } from './components/IntegratedTutorial';
+import { ClassSelector } from './components/ClassSelector';
 
 function WaveSine() {
   return (
@@ -198,13 +202,62 @@ const INITIAL_PRESETS: Patch[] = [
 ];
 
 export default function App() {
+  const [currentView, setCurrentView] = useState<'front' | 'tutorial' | 'synth'>('front');
   const [presets, setPresets] = useState<Patch[]>(INITIAL_PRESETS);
   const [presetIndex, setPresetIndex] = useState(0);
   const [patch, setPatch] = useState<Patch>({ ...INITIAL_PRESETS[0] });
   const [saveFlash, setSaveFlash] = useState(false);
   const [helpMode, setHelpMode] = useState(false);
+  const [tutorialMode, setTutorialMode] = useState(false);
+  const [selectedClass, setSelectedClass] = useState<string | null>(null);
+  const [completedTasks, setCompletedTasks] = useState<Set<string>>(new Set());
+  const [highlightedControl, setHighlightedControl] = useState<string | null>(null);
+  const [lastKnobValues, setLastKnobValues] = useState<Record<string, number>>({
+    tune: patch.tune,
+    level: patch.level,
+    attack: patch.attack,
+    decay: patch.decay,
+    sustain: patch.sustain,
+    release: patch.release,
+    cutoff: patch.cutoff,
+    resonance: patch.resonance,
+    envelope: patch.envelope,
+  });
 
   const activePreset = useMemo(() => presets[presetIndex], [presets, presetIndex]);
+
+  // Tutorial task completion detection
+  useEffect(() => {
+    if (!tutorialMode) return;
+
+    const newCompletedTasks = new Set(completedTasks);
+
+    // Check if specific controls have been adjusted
+    if (patch.tune !== lastKnobValues.tune) newCompletedTasks.add('tune');
+    if (patch.level !== lastKnobValues.level) newCompletedTasks.add('level');
+    if (patch.attack !== lastKnobValues.attack) newCompletedTasks.add('attack');
+    if (patch.decay !== lastKnobValues.decay) newCompletedTasks.add('decay');
+    if (patch.sustain !== lastKnobValues.sustain) newCompletedTasks.add('sustain');
+    if (patch.release !== lastKnobValues.release) newCompletedTasks.add('release');
+    if (patch.cutoff !== lastKnobValues.cutoff) newCompletedTasks.add('cutoff');
+    if (patch.resonance !== lastKnobValues.resonance) newCompletedTasks.add('resonance');
+    if (patch.envelope !== lastKnobValues.envelope) newCompletedTasks.add('envelope');
+
+    if (newCompletedTasks.size > completedTasks.size) {
+      setCompletedTasks(newCompletedTasks);
+      setLastKnobValues({
+        tune: patch.tune,
+        level: patch.level,
+        attack: patch.attack,
+        decay: patch.decay,
+        sustain: patch.sustain,
+        release: patch.release,
+        cutoff: patch.cutoff,
+        resonance: patch.resonance,
+        envelope: patch.envelope,
+      });
+    }
+  }, [patch, tutorialMode, completedTasks, lastKnobValues]);
 
   const loadPreset = (index: number) => {
     setPresetIndex(index);
@@ -250,7 +303,11 @@ export default function App() {
   };
 
   return (
-    <div className="app-shell">
+    <>
+      {currentView === 'front' && <FrontPage onNavigate={setCurrentView} />}
+      {currentView === 'tutorial' && <TutorialPage onClose={() => setCurrentView('front')} />}
+      {currentView === 'synth' && (
+        <div className={`app-shell ${tutorialMode ? 'app-shell--with-tutorial' : ''}`}>
       <section className="synth-panel-wrap">
         <div className="mfb-chassis">
           <div className="mfb-faceplate">
@@ -275,7 +332,20 @@ export default function App() {
               </div>
 
               <div className="top-right">
-                <HelpButton isActive={helpMode} onClick={() => setHelpMode(!helpMode)} />
+                <div style={{ display: 'flex', gap: '6px', flexDirection: 'column', alignItems: 'center' }}>
+                  <HelpButton isActive={helpMode} onClick={() => setHelpMode(!helpMode)} />
+                  {!tutorialMode && (
+                    <button
+                      type="button"
+                      className="mfb-btn tutorial-enable-btn"
+                      onClick={() => setTutorialMode(true)}
+                      title="Ativar tutorial interativo"
+                      aria-label="Ativar tutorial"
+                    >
+                      ?
+                    </button>
+                  )}
+                </div>
               </div>
             </header>
 
@@ -283,23 +353,26 @@ export default function App() {
               <section className="synth-block">
                 <div className="block-inner block-inner--osc">
                   <div className="osc-panel">
-                    <div className="control-col control-col--selector">
+                    <div className={`control-col control-col--selector ${tutorialMode && !completedTasks.has('wave-select') ? 'control-highlighted' : ''}`} id="wave-select">
                       <LedGroupBtn
                         leds={[<WaveSquare />, <WaveSine />, <WaveSaw />, <WaveNoise />]}
                         customLabels="Wave Select"
                         buttonNum="1"
                         activeIdx={patch.wave}
-                        onClick={() => updatePatch('wave', ((patch.wave + 1) % 4) as Patch['wave'])}
+                        onClick={() => {
+                          updatePatch('wave', ((patch.wave + 1) % 4) as Patch['wave']);
+                          if (tutorialMode) setCompletedTasks(new Set(completedTasks).add('wave-select'));
+                        }}
                         helpText="Select waveform: Square, Sine, Sawtooth, or Noise"
                         helpMode={helpMode}
                       />
                     </div>
 
-                    <div className="control-col control-col--knob">
+                    <div className={`control-col control-col--knob ${tutorialMode && !completedTasks.has('tune') ? 'control-highlighted' : ''}`} id="knob-tune">
                       <Knob label="Tune" value={patch.tune} onChange={(value) => updatePatch('tune', value)} helpText="Adjust pitch/frequency of the oscillator" helpMode={helpMode} />
                     </div>
 
-                    <div className="control-col control-col--knob">
+                    <div className={`control-col control-col--knob ${tutorialMode && !completedTasks.has('level') ? 'control-highlighted' : ''}`} id="knob-level">
                       <Knob label="Level" value={patch.level} onChange={(value) => updatePatch('level', value)} helpText="Control output volume of the oscillator" helpMode={helpMode} />
                     </div>
                   </div>
@@ -312,19 +385,19 @@ export default function App() {
 
               <section className="synth-block">
                 <div className="block-inner block-inner--three">
-                  <div className="control-col control-col--knob">
+                  <div className={`control-col control-col--knob ${tutorialMode && !completedTasks.has('attack') ? 'control-highlighted' : ''}`} id="knob-attack">
                     <Knob label="Attack" value={patch.attack} onChange={(value) => updatePatch('attack', value)} helpText="Time for envelope to reach peak" helpMode={helpMode} />
                   </div>
 
-                  <div className="control-col control-col--knob">
+                  <div className={`control-col control-col--knob ${tutorialMode && !completedTasks.has('decay') ? 'control-highlighted' : ''}`} id="knob-decay">
                     <Knob label="Decay" value={patch.decay} onChange={(value) => updatePatch('decay', value)} helpText="Time to fall from peak to sustain level" helpMode={helpMode} />
                   </div>
 
-                  <div className="control-col control-col--knob">
+                  <div className={`control-col control-col--knob ${tutorialMode && !completedTasks.has('sustain') ? 'control-highlighted' : ''}`} id="knob-sustain">
                     <Knob label="Sustain" value={patch.sustain} onChange={(value) => updatePatch('sustain', value)} helpText="Held level while note is sustained" helpMode={helpMode} />
                   </div>
 
-                  <div className="control-col control-col--knob">
+                  <div className={`control-col control-col--knob ${tutorialMode && !completedTasks.has('release') ? 'control-highlighted' : ''}`} id="knob-release">
                     <Knob label="Release" value={patch.release} onChange={(value) => updatePatch('release', value)} helpText="Time to fade after note release" helpMode={helpMode} />
                   </div>
                 </div>
@@ -334,13 +407,16 @@ export default function App() {
 
               <section className="synth-block">
                 <div className="block-inner block-inner--filter-extended">
-                  <div className="filter-switch-col">
+                  <div className={`filter-switch-col ${tutorialMode && !completedTasks.has('filter-toggle') ? 'control-highlighted' : ''}`} id="filter-toggle">
                     <span className="mfb-label">Filter</span>
 
                     <button
                       type="button"
                       className={`filter-toggle ${patch.filterOn ? 'is-on' : ''}`}
-                      onClick={() => updatePatch('filterOn', !patch.filterOn)}
+                      onClick={() => {
+                        updatePatch('filterOn', !patch.filterOn);
+                        if (tutorialMode) setCompletedTasks(new Set(completedTasks).add('filter-toggle'));
+                      }}
                       aria-pressed={patch.filterOn}
                     >
                       <span className="filter-toggle__led"></span>
@@ -349,25 +425,28 @@ export default function App() {
                     <span className="mfb-label-small">{patch.filterOn ? 'ON' : 'OFF'}</span>
                   </div>
 
-                  <div className="control-col control-col--knob">
+                  <div className={`control-col control-col--knob ${tutorialMode && !completedTasks.has('cutoff') ? 'control-highlighted' : ''}`} id="knob-cutoff">
                     <Knob label="Cutoff" value={patch.cutoff} onChange={(value) => updatePatch('cutoff', value)} helpText="Filter frequency cutoff point" helpMode={helpMode} />
                   </div>
 
-                  <div className="control-col control-col--knob">
+                  <div className={`control-col control-col--knob ${tutorialMode && !completedTasks.has('resonance') ? 'control-highlighted' : ''}`} id="knob-resonance">
                     <Knob label="Resonance" value={patch.resonance} onChange={(value) => updatePatch('resonance', value)} helpText="Emphasis/Q at cutoff frequency" helpMode={helpMode} />
                   </div>
 
-                  <div className="control-col control-col--knob">
+                  <div className={`control-col control-col--knob ${tutorialMode && !completedTasks.has('envelope') ? 'control-highlighted' : ''}`} id="knob-envelope">
                     <Knob label="Envelope" value={patch.envelope} onChange={(value) => updatePatch('envelope', value)} helpText="Amount of envelope modulation on filter" helpMode={helpMode} />
                   </div>
 
-                  <div className="filter-mode-col">
+                  <div className={`filter-mode-col ${tutorialMode && !completedTasks.has('filter-slope') ? 'control-highlighted' : ''}`} id="filter-slope">
                     <span className="mfb-label">Slope</span>
 
                     <button
                       type="button"
                       className="filter-mode-btn"
-                      onClick={() => updatePatch('filterSlope', patch.filterSlope === 12 ? 24 : 12)}
+                      onClick={() => {
+                        updatePatch('filterSlope', patch.filterSlope === 12 ? 24 : 12);
+                        if (tutorialMode) setCompletedTasks(new Set(completedTasks).add('filter-slope'));
+                      }}
                     >
                       {patch.filterSlope} dB
                     </button>
@@ -406,8 +485,12 @@ export default function App() {
         <div className="preset-panel__actions">
           <button
             type="button"
-            className={`preset-save-btn ${saveFlash ? 'is-saved' : ''}`}
-            onClick={savePreset}
+            className={`preset-save-btn ${saveFlash ? 'is-saved' : ''} ${tutorialMode && !completedTasks.has('presets') ? 'control-highlighted' : ''}`}
+            onClick={() => {
+              savePreset();
+              if (tutorialMode) setCompletedTasks(new Set(completedTasks).add('presets'));
+            }}
+            id="preset-save"
           >
             SAVE
           </button>
@@ -432,6 +515,26 @@ export default function App() {
           })}
         </div>
       </aside>
-    </div>
+        {tutorialMode && selectedClass === null && (
+          <div className="class-selector-container">
+            <ClassSelector selectedClass={selectedClass} onSelectClass={setSelectedClass} />
+          </div>
+        )}
+        {tutorialMode && selectedClass !== null && (
+          <IntegratedTutorial
+            onClose={() => {
+              setTutorialMode(false);
+              setSelectedClass(null);
+              setCompletedTasks(new Set());
+            }}
+            selectedClass={selectedClass}
+            completedTasks={completedTasks}
+            onTaskComplete={(taskId) => setCompletedTasks(new Set(completedTasks).add(taskId))}
+            highlightedControl={highlightedControl}
+          />
+        )}
+      </div>
+      )}
+    </>
   );
 }
