@@ -24,8 +24,7 @@ export const env = {
   port: numberFromEnv('PORT', 3333),
   corsOrigin: process.env.CORS_ORIGIN ?? 'http://localhost:5173',
   databasePath: resolveProjectPath(process.env.DATABASE_PATH ?? './data/minisynth32.sqlite'),
-  serialMock: booleanFromEnv('SERIAL_MOCK', true),
-  serialPort: process.env.SERIAL_PORT ?? '/dev/ttyACM0',
+  serialPort: process.env.SERIAL_PORT,
   serialBaudRate: numberFromEnv('SERIAL_BAUD_RATE', 115200),
   frontendDist: resolveProjectPath(process.env.FRONTEND_DIST ?? '../frontend/dist'),
 };

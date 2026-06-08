@@ -23,9 +23,9 @@ export type SynthParamPath =
   | 'waveDisplay.samples';
 
 export interface SerialStatus {
-  status: 'mock' | 'connecting' | 'connected' | 'disconnected' | 'error';
+  status: 'connecting' | 'connected' | 'disconnected' | 'error';
   port?: string;
-  mock: boolean;
+  error?: string;
 }
 
 /* ── Default state (matches backend defaultSynthState) ──────────────────── */
@@ -138,7 +138,7 @@ export interface UseSynthWebSocketReturn {
 
 export function useSynthWebSocket(): UseSynthWebSocketReturn {
   const [synthState, setSynthState] = useState<SynthState>(DEFAULT_STATE);
-  const [serialStatus, setSerialStatus] = useState<SerialStatus>({ status: 'disconnected', mock: false });
+  const [serialStatus, setSerialStatus] = useState<SerialStatus>({ status: 'disconnected' });
   const [wsStatus, setWsStatus] = useState<WsConnectionStatus>('disconnected');
   const [waveformSamples, setWaveformSamples] = useState<number[]>([]);
 

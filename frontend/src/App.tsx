@@ -8,6 +8,7 @@ import { TutorialPage } from './components/TutorialPage';
 import { IntegratedTutorial } from './components/IntegratedTutorial';
 import { ClassSelector } from './components/ClassSelector';
 import { useSynthWebSocket, synthStateToPatch, type Patch, type SynthParamPath } from './hooks/useSynthWebSocket';
+import { useMidi } from './hooks/useMidi';
 
 const PIANO_KEYS = [
   { note: 'C4', key: 'A', type: 'white', isBlack: false },
@@ -472,10 +473,10 @@ export default function App() {
     };
   }, [currentView, activeNotes, sendNoteOn, sendNoteOff]);
 
-  const handleNoteStart = useCallback((note: string) => {
+  const handleNoteStart = useCallback((note: string, freq?: number) => {
     if (!activeNotes.has(note)) {
-      const freq = NOTE_FREQUENCIES[note] ?? 440;
-      sendNoteOn(note, freq);
+      const finalFreq = freq ?? NOTE_FREQUENCIES[note] ?? 440;
+      sendNoteOn(note, finalFreq);
       setActiveNotes(prev => new Set(prev).add(note));
     }
   }, [activeNotes, sendNoteOn]);
@@ -490,6 +491,8 @@ export default function App() {
       });
     }
   }, [activeNotes, sendNoteOff]);
+
+  useMidi({ onNoteOn: handleNoteStart, onNoteOff: handleNoteEnd });
 
   return (
     <>
@@ -568,9 +571,9 @@ export default function App() {
               <div className="top-center">
                 <h1 className="mfb-title">minisynth32</h1>
                 <span className="mfb-label">1 OSC · ADSR compartilhado · Filtro</span>
-                <div className="connection-status" title={`WS: ${wsStatus} | Serial: ${serialStatus.status}${serialStatus.mock ? ' (mock)' : ''}`}>
+                <div className="connection-status" title={`WS: ${wsStatus} | Serial: ${serialStatus.status}`}>
                   <span className={`status-dot status-dot--${wsStatus === 'connected' ? 'ok' : wsStatus === 'connecting' ? 'warn' : 'off'}`} />
-                  <span className="mfb-label-small">{wsStatus === 'connected' ? (serialStatus.mock ? 'MOCK' : serialStatus.status.toUpperCase()) : wsStatus.toUpperCase()}</span>
+                  <span className="mfb-label-small">{wsStatus === 'connected' ? serialStatus.status.toUpperCase() : wsStatus.toUpperCase()}</span>
                 </div>
               </div>
 

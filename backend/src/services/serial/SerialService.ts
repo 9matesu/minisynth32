@@ -7,55 +7,79 @@ import { encodeSerialMessage, parseSerialLine } from './SerialProtocol.js';
 import { logger } from '../../utils/logger.js';
 
 interface SerialServiceOptions {
-  mock: boolean;
-  port: string;
+  port?: string;
   baudRate: number;
 }
 
 export class SerialService {
   private readonly events = new EventEmitter();
   private serialPort: SerialPort | null = null;
-  private mockTimer: NodeJS.Timeout | null = null;
   private status: SerialStatusPayload;
+  private options: SerialServiceOptions;
 
-  constructor(private readonly options: SerialServiceOptions) {
+  constructor(options: SerialServiceOptions) {
+    this.options = options;
     this.status = {
-      status: options.mock ? 'mock' : 'disconnected',
+      status: 'disconnected',
       port: options.port,
-      mock: options.mock,
     };
   }
 
-  start() {
-    if (this.options.mock) {
-      this.startMock();
-      return;
-    }
-
+  async start() {
     this.setStatus('connecting');
-    const port = new SerialPort({ path: this.options.port, baudRate: this.options.baudRate, autoOpen: false });
-    this.serialPort = port;
 
-    const parser = port.pipe(new ReadlineParser({ delimiter: '\n' }));
-    parser.on('data', (line: string) => this.handleLine(line));
-    port.on('error', (error) => this.emitError(error));
-    port.on('close', () => this.setStatus('disconnected'));
+    try {
+      let targetPort = this.options.port;
 
-    port.open((error) => {
-      if (error) {
-        this.emitError(error);
-        return;
+      if (!targetPort) {
+        logger.info('No serial port specified, scanning for ESP32...');
+        const ports = await SerialPort.list();
+        
+        // Try to find a CH340, CP210x or generic CDC device
+        const espPort = ports.find(p => 
+          (p.vendorId && p.productId) && 
+          (p.vendorId.toLowerCase() === '1a86' || // CH340/CH343
+           p.vendorId.toLowerCase() === '10c4' || // CP2102
+           p.vendorId.toLowerCase() === '303a' || // ESP32 native USB
+           p.vendorId.toLowerCase() === '0403')   // FTDI
+        );
+
+        if (espPort) {
+          logger.info(`Found potential ESP32 device at ${espPort.path} (${espPort.manufacturer || 'Unknown'})`);
+          targetPort = espPort.path;
+        } else if (ports.length > 0) {
+          logger.info(`No known ESP32 vendor IDs found. Defaulting to first available port: ${ports[0].path}`);
+          targetPort = ports[0].path;
+        } else {
+          throw new Error('No serial ports found on the system.');
+        }
       }
-      this.setStatus('connected');
-    });
+
+      this.options.port = targetPort;
+      
+      const port = new SerialPort({ path: targetPort, baudRate: this.options.baudRate, autoOpen: false });
+      this.serialPort = port;
+
+      const parser = port.pipe(new ReadlineParser({ delimiter: '\n' }));
+      parser.on('data', (line: string) => this.handleLine(line));
+      port.on('error', (error) => this.emitError(error));
+      port.on('close', () => this.setStatus('disconnected'));
+
+      port.open((error) => {
+        if (error) {
+          this.emitError(error);
+          return;
+        }
+        logger.info(`Successfully connected to serial port: ${targetPort}`);
+        this.setStatus('connected');
+      });
+
+    } catch (error) {
+      this.emitError(error instanceof Error ? error : new Error(String(error)));
+    }
   }
 
   stop() {
-    if (this.mockTimer) {
-      clearInterval(this.mockTimer);
-      this.mockTimer = null;
-    }
-
     if (this.serialPort?.isOpen) {
       this.serialPort.close();
     }
@@ -75,12 +99,6 @@ export class SerialService {
 
   write(message: SerialMessage) {
     const encoded = encodeSerialMessage(message);
-
-    if (this.options.mock) {
-      logger.info('Mock serial write', { message });
-      this.events.emit('message', { type: 'ack', path: 'path' in message ? message.path : undefined, ok: true } satisfies SerialMessage);
-      return;
-    }
 
     if (!this.serialPort?.isOpen) {
       this.emitError(new Error('Porta serial nao esta aberta.'));
@@ -110,23 +128,6 @@ export class SerialService {
     this.events.on('error', listener);
   }
 
-  private startMock() {
-    this.setStatus('mock');
-    let uptime = 0;
-
-    this.mockTimer = setInterval(() => {
-      uptime += 500;
-      const cutoff = Math.round(35 + Math.sin(uptime / 5000) * 20 + 20);
-      this.events.emit('message', { type: 'heartbeat', uptime } satisfies SerialMessage);
-      this.events.emit('message', { type: 'state_update', path: 'filter.cutoff', value: cutoff } satisfies SerialMessage);
-      this.events.emit('message', {
-        type: 'state_update',
-        path: 'waveDisplay.samples',
-        value: Array.from({ length: 32 }, (_, index) => Math.sin(index / 4 + uptime / 400)),
-      } satisfies SerialMessage);
-    }, 500);
-  }
-
   private handleLine(line: string) {
     try {
       const message = parseSerialLine(line.trim());
@@ -140,18 +141,17 @@ export class SerialService {
     this.status = {
       status,
       port: this.options.port,
-      mock: this.options.mock,
     };
     this.events.emit('status', this.getStatus());
   }
 
   private emitError(error: Error) {
+    logger.error(`Serial Error: ${error.message}`);
     this.status = {
       status: 'error',
       port: this.options.port,
-      mock: this.options.mock,
+      error: error.message,
     };
-    logger.error('Serial error', { message: error.message });
     this.events.emit('error', error);
     this.events.emit('status', this.getStatus());
   }

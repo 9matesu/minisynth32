@@ -1,6 +1,6 @@
 import type { SynthParamPath } from './synth.js';
 
-export type SerialStatus = 'mock' | 'connecting' | 'connected' | 'disconnected' | 'error';
+export type SerialStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
 
 export type SerialMessage =
   | {
@@ -40,5 +40,5 @@ export type SerialMessage =
 export interface SerialStatusPayload {
   status: SerialStatus;
   port?: string;
-  mock: boolean;
+  error?: string;
 }

@@ -21,7 +21,6 @@ runMigrations();
 const db = getDatabase();
 const synthState = new SynthStateManager();
 const serial = new SerialService({
-  mock: appConfig.env.serialMock,
   port: appConfig.env.serialPort,
   baudRate: appConfig.env.serialBaudRate,
 });
