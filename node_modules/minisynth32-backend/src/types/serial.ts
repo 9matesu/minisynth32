@@ -27,9 +27,21 @@ export type SerialMessage =
       type: 'log';
       level: 'info' | 'warn' | 'error';
       message: string;
+    }
+  | {
+      type: 'note_on';
+      note: string;
+      freq: number;
+    }
+  | {
+      type: 'note_off';
     };
 
 export interface SerialStatusPayload {
   status: SerialStatus;
   port?: string;
+<<<<<<< HEAD
+=======
+  error?: string;
+>>>>>>> 5dc8017831f0aaf781d96448a22e71889f00305c
 }

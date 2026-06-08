@@ -1,4 +1,4 @@
-export type Waveform = 'square' | 'sine' | 'saw' | 'noise';
+export type Waveform = 'sine' | 'saw' | 'square' | 'triangle';
 export type FilterSlope = 12 | 24;
 export type SynthParamSource = 'frontend' | 'serial' | 'preset' | 'system';
 
@@ -71,7 +71,7 @@ export interface SynthParamChange {
 
 export const defaultSynthState: SynthState = {
   osc1: {
-    waveform: 'square',
+    waveform: 'saw',
     octave: 0,
     volume: 72,
   },
