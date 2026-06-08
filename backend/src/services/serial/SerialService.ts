@@ -65,6 +65,14 @@ export class SerialService {
     this.write({ type: 'param_set', path, value });
   }
 
+  sendNoteOn(note: string, freq: number) {
+    this.write({ type: 'note_on', note, freq });
+  }
+
+  sendNoteOff() {
+    this.write({ type: 'note_off' });
+  }
+
   write(message: SerialMessage) {
     const encoded = encodeSerialMessage(message);
 
@@ -107,7 +115,7 @@ export class SerialService {
     let uptime = 0;
 
     this.mockTimer = setInterval(() => {
-      uptime += 1000;
+      uptime += 500;
       const cutoff = Math.round(35 + Math.sin(uptime / 5000) * 20 + 20);
       this.events.emit('message', { type: 'heartbeat', uptime } satisfies SerialMessage);
       this.events.emit('message', { type: 'state_update', path: 'filter.cutoff', value: cutoff } satisfies SerialMessage);
@@ -116,7 +124,7 @@ export class SerialService {
         path: 'waveDisplay.samples',
         value: Array.from({ length: 32 }, (_, index) => Math.sin(index / 4 + uptime / 400)),
       } satisfies SerialMessage);
-    }, 1000);
+    }, 500);
   }
 
   private handleLine(line: string) {

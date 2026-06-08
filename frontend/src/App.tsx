@@ -1,12 +1,13 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { Knob } from './components/Knob';
 import { LedGroupBtn } from './components/LedGroupBtn';
 import { HelpButton } from './components/HelpButton';
-import { WaveSaw, WaveSquare } from './components/Waves';
+import { WaveSaw, WaveSquare, WaveSine, WaveTri } from './components/Waves';
 import { FrontPage } from './components/FrontPage';
 import { TutorialPage } from './components/TutorialPage';
 import { IntegratedTutorial } from './components/IntegratedTutorial';
 import { ClassSelector } from './components/ClassSelector';
+import { useSynthWebSocket, synthStateToPatch, type Patch, type SynthParamPath } from './hooks/useSynthWebSocket';
 
 const PIANO_KEYS = [
   { note: 'C4', key: 'A', type: 'white', isBlack: false },
@@ -27,24 +28,31 @@ const PIANO_KEYS = [
   { note: 'D#5', key: 'P', type: 'black', isBlack: true },
 ];
 
-function WaveSine() {
-  return (
-    <svg className="wave-icon" viewBox="0 0 24 12" aria-hidden="true">
-      <path d="M1 6 C4 1, 8 1, 12 6 S20 11, 23 6" />
-    </svg>
-  );
-}
+/* Note frequencies for MIDI mapping */
+const NOTE_FREQUENCIES: Record<string, number> = {
+  'C4': 261.63, 'C#4': 277.18, 'D4': 293.66, 'D#4': 311.13,
+  'E4': 329.63, 'F4': 349.23, 'F#4': 369.99, 'G4': 392.00,
+  'G#4': 415.30, 'A4': 440.00, 'A#4': 466.16, 'B4': 493.88,
+  'C5': 523.25, 'C#5': 554.37, 'D5': 587.33, 'D#5': 622.25,
+};
 
-function WaveNoise() {
-  return (
-    <svg className="wave-icon" viewBox="0 0 24 12" aria-hidden="true">
-      <path d="M1 8 L4 3 L7 9 L10 2 L13 8 L16 4 L19 10 L23 5" />
-    </svg>
-  );
-}
+function WaveDisplay({ samples }: { samples: number[] }) {
+  // Generate SVG path from waveform samples
+  const pathD = useMemo(() => {
+    if (!samples || samples.length === 0) return '';
+    const width = 162;
+    const height = 60;
+    const midY = height / 2;
+    const stepX = width / (samples.length - 1 || 1);
+    return samples
+      .map((s, i) => {
+        const x = i * stepX;
+        const y = midY - s * (midY - 2); // map -1..1 to full height with padding
+        return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
+      })
+      .join(' ');
+  }, [samples]);
 
-function WaveDisplay({ wave }: { wave: number }) {
-  // Paths removed for future real-time audio input
   return (
     <div className="wave-display">
       <div className="wave-display__header">
@@ -61,30 +69,53 @@ function WaveDisplay({ wave }: { wave: number }) {
 
           <rect x="0" y="0" width="162" height="60" fill="url(#scopeGrid)" />
           <line x1="0" y1="30" x2="162" y2="30" stroke="rgba(255,255,255,0.14)" strokeWidth="1" />
-          {/* Real-time waveform path will be injected here */}
+          {pathD && (
+            <path
+              d={pathD}
+              fill="none"
+              stroke="#00ff88"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="wave-display__path"
+            />
+          )}
         </svg>
       </div>
     </div>
   );
 }
 
-type Patch = {
-  name: string;
-  wave: number;
-  tune: number;
-  level: number;
-  attack: number;
-  decay: number;
-  sustain: number;
-  release: number;
-  filterOn: boolean;
-  cutoff: number;
-  resonance: number;
-  envelope: number;
-  filterSlope: 12 | 24;
-  arpOn: boolean;
-  arpRate: number; // 0: 1/32, 1: 1/24, 2: 1/16, 3: 1/8, 4: 1/4
+/* Waveform index-to-SynthParamPath mapping */
+const WAVEFORM_NAMES = ['square', 'sine', 'saw', 'triangle'] as const;
+
+/** Maps a Patch key to its corresponding backend SynthParamPath */
+const PATCH_TO_PATH: Record<string, SynthParamPath> = {
+  wave: 'osc1.waveform',
+  tune: 'osc1.octave',
+  level: 'osc1.volume',
+  attack: 'ampAdsr.attack',
+  decay: 'ampAdsr.decay',
+  sustain: 'ampAdsr.sustain',
+  release: 'ampAdsr.release',
+  filterOn: 'filter.enabled',
+  cutoff: 'filter.cutoff',
+  resonance: 'filter.resonance',
+  envelope: 'filter.envelope',
+  filterSlope: 'filter.slope',
+  arpOn: 'arpeggiator.enabled',
+  arpRate: 'arpeggiator.rate',
 };
+
+/** Convert a patch key+value to the backend wire format */
+function patchValueToWire(key: string, value: unknown): unknown {
+  switch (key) {
+    case 'wave': return WAVEFORM_NAMES[value as number] ?? 'saw';
+    case 'tune': return Math.round((value as number) / 25) - 2; // 0-100 → octave -2..+2
+    case 'arpRate': return (value as number) * 8 || 1; // step 0-4 → rate 1-32
+    default: return value;
+  }
+}
 
 const INITIAL_PRESETS: Patch[] = [
   {
@@ -226,6 +257,8 @@ const INITIAL_PRESETS: Patch[] = [
 ];
 
 export default function App() {
+  const { synthState, serialStatus, wsStatus, waveformSamples, sendParam, sendNoteOn, sendNoteOff } = useSynthWebSocket();
+
   const [currentView, setCurrentView] = useState<'front' | 'tutorial' | 'synth'>('front');
   const [presets, setPresets] = useState<Patch[]>(INITIAL_PRESETS);
   const [presetIndex, setPresetIndex] = useState(0);
@@ -243,6 +276,7 @@ export default function App() {
   const [completedTasks, setCompletedTasks] = useState<Set<string>>(new Set());
   const [highlightedControl, setHighlightedControl] = useState<string | null>(null);
   const [activeNotes, setActiveNotes] = useState<Set<string>>(new Set());
+  const [wsInitialized, setWsInitialized] = useState(false);
 
   const [lastKnobValues, setLastKnobValues] = useState<Record<string, number>>({
     tune: patch.tune,
@@ -255,6 +289,29 @@ export default function App() {
     resonance: patch.resonance,
     envelope: patch.envelope,
   });
+
+  // Sync patch from WebSocket state (when server sends updates from ESP32)
+  useEffect(() => {
+    if (wsStatus === 'connected' && !wsInitialized) {
+      // Initialize patch from server state on first connection
+      const serverPatch = synthStateToPatch(synthState, patch.name);
+      setPatch(prev => ({ ...prev, ...serverPatch, name: prev.name }));
+      setWsInitialized(true);
+    }
+  }, [wsStatus, wsInitialized, synthState, patch.name]);
+
+  // Apply incoming synth state changes from serial/ESP32 to local patch
+  useEffect(() => {
+    if (!wsInitialized) return;
+    setPatch(prev => {
+      const updated = synthStateToPatch(synthState, prev.name);
+      // Only update if values actually changed (avoid infinite loop)
+      const changed = Object.keys(updated).some(
+        k => k !== 'name' && (updated as Record<string, unknown>)[k] !== (prev as Record<string, unknown>)[k]
+      );
+      return changed ? { ...prev, ...updated, name: prev.name } : prev;
+    });
+  }, [synthState, wsInitialized]);
 
   const activePreset = useMemo(() => presets[presetIndex], [presets, presetIndex]);
 
@@ -294,6 +351,12 @@ export default function App() {
   const loadPreset = (index: number) => {
     setPresetIndex(index);
     setPatch({ ...presets[index] });
+    // Sync all preset values to backend
+    const p = presets[index];
+    for (const [key, path] of Object.entries(PATCH_TO_PATH)) {
+      const value = patchValueToWire(key, (p as Record<string, unknown>)[key]);
+      sendParam(path, value);
+    }
   };
 
   const prevPreset = () => {
@@ -312,7 +375,6 @@ export default function App() {
       
       // Immediately check if this satisfies the current tutorial task
       if (tutorialMode && highlightedControl) {
-        // Map patch keys to task IDs or use specific checks
         const taskMap: Record<string, string> = {
           wave: 'wave-select',
           tune: 'tune',
@@ -330,7 +392,6 @@ export default function App() {
         
         const taskId = taskMap[key as string];
         if (taskId && !completedTasks.has(taskId)) {
-          // If the mapped task matches the current highlighted control or is related to the action
           if (highlightedControl.includes(taskId) || taskId.includes(highlightedControl.replace('knob-', ''))) {
             setCompletedTasks(prev => new Set(prev).add(taskId));
           }
@@ -339,6 +400,13 @@ export default function App() {
       
       return next;
     });
+
+    // Send to backend via WebSocket
+    const path = PATCH_TO_PATH[key as string];
+    if (path) {
+      const wireValue = patchValueToWire(key as string, value);
+      sendParam(path, wireValue);
+    }
   };
 
   const savePreset = (newName: string) => {
@@ -378,8 +446,8 @@ export default function App() {
       if (e.repeat) return;
       const keyMap = PIANO_KEYS.find(k => k.key === e.key.toUpperCase());
       if (keyMap && !activeNotes.has(keyMap.note)) {
-        // Here we would send MIDI Note On to backend
-        console.log(`MIDI Note On: ${keyMap.note}`);
+        const freq = NOTE_FREQUENCIES[keyMap.note] ?? 440;
+        sendNoteOn(keyMap.note, freq);
         setActiveNotes(prev => new Set(prev).add(keyMap.note));
       }
     };
@@ -387,8 +455,7 @@ export default function App() {
     const handleKeyUp = (e: KeyboardEvent) => {
       const keyMap = PIANO_KEYS.find(k => k.key === e.key.toUpperCase());
       if (keyMap && activeNotes.has(keyMap.note)) {
-        // Here we would send MIDI Note Off to backend
-        console.log(`MIDI Note Off: ${keyMap.note}`);
+        sendNoteOff();
         setActiveNotes(prev => {
           const next = new Set(prev);
           next.delete(keyMap.note);
@@ -403,25 +470,26 @@ export default function App() {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [currentView, activeNotes]);
+  }, [currentView, activeNotes, sendNoteOn, sendNoteOff]);
 
-  const handleNoteStart = (note: string) => {
+  const handleNoteStart = useCallback((note: string) => {
     if (!activeNotes.has(note)) {
-      console.log(`MIDI Note On: ${note}`);
+      const freq = NOTE_FREQUENCIES[note] ?? 440;
+      sendNoteOn(note, freq);
       setActiveNotes(prev => new Set(prev).add(note));
     }
-  };
+  }, [activeNotes, sendNoteOn]);
 
-  const handleNoteEnd = (note: string) => {
+  const handleNoteEnd = useCallback((note: string) => {
     if (activeNotes.has(note)) {
-      console.log(`MIDI Note Off: ${note}`);
+      sendNoteOff();
       setActiveNotes(prev => {
         const next = new Set(prev);
         next.delete(note);
         return next;
       });
     }
-  };
+  }, [activeNotes, sendNoteOff]);
 
   return (
     <>
@@ -500,6 +568,10 @@ export default function App() {
               <div className="top-center">
                 <h1 className="mfb-title">minisynth32</h1>
                 <span className="mfb-label">1 OSC · ADSR compartilhado · Filtro</span>
+                <div className="connection-status" title={`WS: ${wsStatus} | Serial: ${serialStatus.status}${serialStatus.mock ? ' (mock)' : ''}`}>
+                  <span className={`status-dot status-dot--${wsStatus === 'connected' ? 'ok' : wsStatus === 'connecting' ? 'warn' : 'off'}`} />
+                  <span className="mfb-label-small">{wsStatus === 'connected' ? (serialStatus.mock ? 'MOCK' : serialStatus.status.toUpperCase()) : wsStatus.toUpperCase()}</span>
+                </div>
               </div>
 
               <div className="top-right">
@@ -527,7 +599,7 @@ export default function App() {
                     <div className="osc-panel">
                       <div className={`control-col control-col--selector ${tutorialMode && highlightedControl === 'wave-select' ? 'control-highlighted' : ''}`} id="wave-select">
                         <LedGroupBtn
-                          leds={[<WaveSquare />, <WaveSine />, <WaveSaw />, <WaveNoise />]}
+                          leds={[<WaveSquare />, <WaveSine />, <WaveSaw />, <WaveTri />]}
                           customLabels="Wave Select"
                           buttonNum="1"
                           activeIdx={patch.wave}
@@ -535,7 +607,7 @@ export default function App() {
                             updatePatch('wave', ((patch.wave + 1) % 4) as Patch['wave']);
                             if (tutorialMode) setCompletedTasks(new Set(completedTasks).add('wave-select'));
                           }}
-                          helpText="Selecione a forma de onda: Square, Sine, Sawtooth ou Noise"
+                          helpText="Selecione a forma de onda: Square, Sine, Sawtooth ou Triangle"
                           helpMode={helpMode}
                         />
                       </div>
@@ -580,7 +652,7 @@ export default function App() {
                     </div>
                   </div>
 
-                  <WaveDisplay wave={patch.wave} />
+                  <WaveDisplay samples={waveformSamples} />
                 </div>
 
                 <span className="cell-title">OSC 1</span>

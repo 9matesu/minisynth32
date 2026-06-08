@@ -73,6 +73,15 @@ export class WebSocketService {
         this.deps.serial.sendParamSet(payload.path, payload.value);
         return;
       }
+      case 'note:on': {
+        const payload = message.payload as { note: string; freq: number };
+        this.deps.serial.sendNoteOn(payload.note, payload.freq);
+        return;
+      }
+      case 'note:off': {
+        this.deps.serial.sendNoteOff();
+        return;
+      }
       case 'preset:save': {
         const preset = this.deps.presets.create(message.payload as never);
         this.broadcast('preset:list', { presets: this.deps.presets.list() });

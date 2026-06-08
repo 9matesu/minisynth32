@@ -69,6 +69,12 @@ serial.onMessage((message) => {
     case 'log':
       logger[message.level](message.message);
       break;
+    case 'note_on':
+      logger.info('ESP32 note on', { note: message.note, freq: message.freq });
+      break;
+    case 'note_off':
+      logger.info('ESP32 note off');
+      break;
   }
 });
 
