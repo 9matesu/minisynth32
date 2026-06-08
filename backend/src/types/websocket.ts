@@ -7,6 +7,8 @@ export type WebSocketEventName =
   | 'synth:state'
   | 'synth:param:set'
   | 'synth:param:changed'
+  | 'note:on'
+  | 'note:off'
   | 'preset:save'
   | 'preset:load'
   | 'preset:list'
@@ -46,4 +48,13 @@ export interface PresetLoadPayload {
 
 export interface PresetListPayload {
   presets: PresetDto[];
+}
+
+export interface NoteOnPayload {
+  note: string;
+  freq: number;
+}
+
+export interface NoteOffPayload {
+  note?: string;
 }

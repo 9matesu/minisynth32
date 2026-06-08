@@ -1,7 +1,7 @@
 import type { SynthParamPath, SynthState, Waveform } from '../../types/synth.js';
 import { ValidationError } from '../../utils/errors.js';
 
-const waveforms: Waveform[] = ['square', 'sine', 'saw', 'noise'];
+const waveforms: Waveform[] = ['sine', 'saw', 'square', 'triangle'];
 const paramPaths = new Set<SynthParamPath>([
   'osc1.waveform',
   'osc1.octave',
