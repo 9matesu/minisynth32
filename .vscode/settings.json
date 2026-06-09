@@ -1,3 +1,9 @@
 {
-    "git.ignoreLimitWarning": true
+    "git.ignoreLimitWarning": true,
+    "idf.customExtraVars": {},
+    "idf.currentSetup": "I:\\.espressif\\v6.0.1\\esp-idf",
+    "idf.portWin": "COM3",
+    "idf.openOcdConfigs": [
+        "board/esp32s3-builtin.cfg"
+    ]
 }

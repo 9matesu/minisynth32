@@ -38,6 +38,10 @@ export interface UseSynthStateReturn {
   ready: boolean;
   /** Last system error from backend */
   lastError: string | null;
+  /** Send MIDI Note On */
+  sendNoteOn: (note: string, freq: number) => void;
+  /** Send MIDI Note Off */
+  sendNoteOff: (note: string, freq: number) => void;
 }
 
 // ── Hook ─────────────────────────────────────────────────────
@@ -180,6 +184,14 @@ export function useSynthState(): UseSynthStateReturn {
     ws.send('preset:list', {});
   }, [ws]);
 
+  const sendNoteOn = useCallback((note: string, freq: number) => {
+    ws.send('note:on', { note, freq });
+  }, [ws]);
+
+  const sendNoteOff = useCallback((note: string, freq: number) => {
+    ws.send('note:off', { note, freq });
+  }, [ws]);
+
   return {
     state,
     setParam,
@@ -188,6 +200,8 @@ export function useSynthState(): UseSynthStateReturn {
     loadPreset,
     savePreset,
     refreshPresets,
+    sendNoteOn,
+    sendNoteOff,
     serialStatus,
     connectionState: ws.connectionState,
     ready,

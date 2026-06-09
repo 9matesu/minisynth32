@@ -117,7 +117,9 @@ export type WebSocketEventName =
   | 'preset:list'
   | 'serial:status'
   | 'serial:error'
-  | 'system:error';
+  | 'system:error'
+  | 'note:on'
+  | 'note:off';
 
 export interface WsEnvelope<TPayload = unknown> {
   event: WebSocketEventName;

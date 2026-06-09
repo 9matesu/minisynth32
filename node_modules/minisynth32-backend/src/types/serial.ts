@@ -35,13 +35,12 @@ export type SerialMessage =
     }
   | {
       type: 'note_off';
+      note: string;
+      freq: number;
     };
 
 export interface SerialStatusPayload {
   status: SerialStatus;
   port?: string;
-<<<<<<< HEAD
-=======
   error?: string;
->>>>>>> 5dc8017831f0aaf781d96448a22e71889f00305c
 }

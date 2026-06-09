@@ -79,7 +79,8 @@ export class WebSocketService {
         return;
       }
       case 'note:off': {
-        this.deps.serial.sendNoteOff();
+        const payload = message.payload as { note: string; freq: number };
+        this.deps.serial.sendNoteOff(payload.note, payload.freq);
         return;
       }
       case 'preset:save': {

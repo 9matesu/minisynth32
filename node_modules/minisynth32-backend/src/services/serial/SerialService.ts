@@ -7,11 +7,7 @@ import { encodeSerialMessage, parseSerialLine } from './SerialProtocol.js';
 import { logger } from '../../utils/logger.js';
 
 interface SerialServiceOptions {
-<<<<<<< HEAD
-  port: string;
-=======
   port?: string;
->>>>>>> 5dc8017831f0aaf781d96448a22e71889f00305c
   baudRate: number;
 }
 
@@ -20,6 +16,7 @@ export class SerialService {
   private serialPort: SerialPort | null = null;
   private status: SerialStatusPayload;
   private options: SerialServiceOptions;
+  private reconnectTimer: NodeJS.Timeout | null = null;
 
   constructor(options: SerialServiceOptions) {
     this.options = options;
@@ -29,11 +26,11 @@ export class SerialService {
     };
   }
 
-<<<<<<< HEAD
-  start() {
-=======
   async start() {
->>>>>>> 5dc8017831f0aaf781d96448a22e71889f00305c
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
     this.setStatus('connecting');
 
     try {
@@ -70,12 +67,19 @@ export class SerialService {
 
       const parser = port.pipe(new ReadlineParser({ delimiter: '\n' }));
       parser.on('data', (line: string) => this.handleLine(line));
-      port.on('error', (error) => this.emitError(error));
-      port.on('close', () => this.setStatus('disconnected'));
+      port.on('error', (error) => {
+        this.emitError(error);
+        this.scheduleReconnect();
+      });
+      port.on('close', () => {
+        this.setStatus('disconnected');
+        this.scheduleReconnect();
+      });
 
       port.open((error) => {
         if (error) {
           this.emitError(error);
+          this.scheduleReconnect();
           return;
         }
         logger.info(`Successfully connected to serial port: ${targetPort}`);
@@ -84,12 +88,27 @@ export class SerialService {
 
     } catch (error) {
       this.emitError(error instanceof Error ? error : new Error(String(error)));
+      this.scheduleReconnect();
     }
   }
 
   stop() {
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
     if (this.serialPort?.isOpen) {
       this.serialPort.close();
+    }
+  }
+
+  private scheduleReconnect() {
+    if (!this.reconnectTimer) {
+      this.reconnectTimer = setTimeout(() => {
+        this.reconnectTimer = null;
+        logger.info('Attempting to reconnect to serial port...');
+        this.start();
+      }, 3000);
     }
   }
 
@@ -101,8 +120,8 @@ export class SerialService {
     this.write({ type: 'note_on', note, freq });
   }
 
-  sendNoteOff() {
-    this.write({ type: 'note_off' });
+  sendNoteOff(note: string, freq: number) {
+    this.write({ type: 'note_off', note, freq });
   }
 
   write(message: SerialMessage) {
@@ -155,13 +174,14 @@ export class SerialService {
 
   private emitError(error: Error) {
     logger.error(`Serial Error: ${error.message}`);
+    // If it's a ValidationError with a 'line' details, log it to help debugging
+    if ('details' in error && error.details && typeof (error.details as any).line === 'string') {
+      logger.error(`Raw invalid line: ${(error.details as any).line}`);
+    }
     this.status = {
       status: 'error',
       port: this.options.port,
-<<<<<<< HEAD
-=======
       error: error.message,
->>>>>>> 5dc8017831f0aaf781d96448a22e71889f00305c
     };
     this.events.emit('error', error);
     this.events.emit('status', this.getStatus());

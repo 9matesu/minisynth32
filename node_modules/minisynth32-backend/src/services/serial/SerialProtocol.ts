@@ -55,7 +55,11 @@ export const parseSerialLine = (line: string): SerialMessage => {
         freq: Number(parsed.freq ?? 0),
       };
     case 'note_off':
-      return { type: 'note_off' };
+      return { 
+        type: 'note_off',
+        note: typeof parsed.note === 'string' ? parsed.note : '',
+        freq: Number(parsed.freq ?? 0)
+      };
     default:
       throw new ValidationError(`Tipo serial desconhecido: ${parsed.type}`, parsed);
   }

@@ -50,7 +50,8 @@ synthState.onChanged((change) => {
   if (change.source !== 'serial') {
     return;
   }
-  logger.info('Synth state changed from serial', { path: change.path, value: change.value });
+  // Suppress verbose state_update logs to clean up terminal
+  // logger.info('Synth state changed from serial', { path: change.path, value: change.value });
 });
 
 serial.onMessage((message) => {
@@ -60,7 +61,8 @@ serial.onMessage((message) => {
       synthState.setParam(message.path, message.value, 'serial');
       break;
     case 'heartbeat':
-      logger.info('ESP32 heartbeat', { uptime: message.uptime });
+      // Suppress verbose heartbeat logs
+      // logger.info('ESP32 heartbeat', { uptime: message.uptime });
       break;
     case 'ack':
       logger.info('ESP32 ack', { path: message.path, ok: message.ok });

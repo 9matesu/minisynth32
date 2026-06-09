@@ -4,6 +4,7 @@ import { LedGroupBtn } from './components/LedGroupBtn';
 import { HelpButton } from './components/HelpButton';
 import { WaveSaw, WaveSquare } from './components/Waves';
 import { FrontPage } from './components/FrontPage';
+import { CheckupPage } from './components/CheckupPage';
 import { TutorialPage } from './components/TutorialPage';
 import { IntegratedTutorial } from './components/IntegratedTutorial';
 import { ClassSelector } from './components/ClassSelector';
@@ -277,6 +278,20 @@ const INITIAL_PRESETS: Patch[] = [
   },
 ];
 
+function getNoteFrequency(note: string): number {
+  const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  const regex = /^([A-G]#?)(\d)$/;
+  const match = note.match(regex);
+  if (!match) return 440;
+  
+  const name = match[1];
+  const octave = parseInt(match[2], 10);
+  const noteIndex = notes.indexOf(name);
+  
+  const midiNote = noteIndex + (octave + 1) * 12;
+  return 440 * Math.pow(2, (midiNote - 69) / 12);
+}
+
 export default function App() {
   // ── Backend connection ───────────────────────────────────────
   const synth = useSynthState();
@@ -285,7 +300,7 @@ export default function App() {
   const patch = useMemo(() => synthStateToPatch(synth.state), [synth.state]);
 
   // ── Local UI state ──────────────────────────────────────────
-  const [currentView, setCurrentView] = useState<'front' | 'tutorial' | 'synth'>('front');
+  const [currentView, setCurrentView] = useState<'front' | 'checkup' | 'tutorial' | 'synth'>('front');
   const [presetIndex, setPresetIndex] = useState(0);
   const [saveFlash, setSaveFlash] = useState(false);
   const [helpMode, setHelpMode] = useState(false);
@@ -463,7 +478,7 @@ export default function App() {
   };
 
   const handleLearnClick = () => {
-    setCurrentView('synth');
+    setCurrentView('checkup');
     setTutorialMode(true);
   };
 
@@ -488,23 +503,15 @@ export default function App() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.repeat) return;
       const keyMap = PIANO_KEYS.find(k => k.key === e.key.toUpperCase());
-      if (keyMap && !activeNotes.has(keyMap.note)) {
-        // Here we would send MIDI Note On to backend
-        console.log(`MIDI Note On: ${keyMap.note}`);
-        setActiveNotes(prev => new Set(prev).add(keyMap.note));
+      if (keyMap) {
+        handleNoteStart(keyMap.note);
       }
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
       const keyMap = PIANO_KEYS.find(k => k.key === e.key.toUpperCase());
-      if (keyMap && activeNotes.has(keyMap.note)) {
-        // Here we would send MIDI Note Off to backend
-        console.log(`MIDI Note Off: ${keyMap.note}`);
-        setActiveNotes(prev => {
-          const next = new Set(prev);
-          next.delete(keyMap.note);
-          return next;
-        });
+      if (keyMap) {
+        handleNoteEnd(keyMap.note);
       }
     };
 
@@ -518,14 +525,18 @@ export default function App() {
 
   const handleNoteStart = (note: string) => {
     if (!activeNotes.has(note)) {
-      console.log(`MIDI Note On: ${note}`);
+      const freq = getNoteFrequency(note);
+      console.log(`MIDI Note On: ${note} (${freq.toFixed(2)} Hz)`);
+      synth.sendNoteOn(note, freq);
       setActiveNotes(prev => new Set(prev).add(note));
     }
   };
 
   const handleNoteEnd = (note: string) => {
     if (activeNotes.has(note)) {
-      console.log(`MIDI Note Off: ${note}`);
+      const freq = getNoteFrequency(note);
+      console.log(`MIDI Note Off: ${note} (${freq.toFixed(2)} Hz)`);
+      synth.sendNoteOff(note, freq);
       setActiveNotes(prev => {
         const next = new Set(prev);
         next.delete(note);
@@ -536,7 +547,8 @@ export default function App() {
 
   return (
     <>
-      {currentView === 'front' && <FrontPage onNavigate={setCurrentView} onLearn={handleLearnClick} />}
+      {currentView === 'front' && <FrontPage onNavigate={(v) => setCurrentView(v === 'synth' ? 'checkup' : v)} onLearn={handleLearnClick} />}
+      {currentView === 'checkup' && <CheckupPage synth={synth} onComplete={() => setCurrentView('synth')} onBack={() => { setCurrentView('front'); setTutorialMode(false); }} />}
       {currentView === 'tutorial' && <TutorialPage onClose={() => setCurrentView('front')} />}
       {currentView === 'synth' && (
         <div className="app-layout">
