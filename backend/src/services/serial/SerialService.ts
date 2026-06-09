@@ -175,8 +175,9 @@ export class SerialService {
   private emitError(error: Error) {
     logger.error(`Serial Error: ${error.message}`);
     // If it's a ValidationError with a 'line' details, log it to help debugging
-    if ('details' in error && error.details && typeof (error.details as any).line === 'string') {
-      logger.error(`Raw invalid line: ${(error.details as any).line}`);
+    const errWithDetails = error as Error & { details?: { line?: unknown } };
+    if (errWithDetails.details && typeof errWithDetails.details.line === 'string') {
+      logger.error(`Raw invalid line: ${errWithDetails.details.line}`);
     }
     this.status = {
       status: 'error',

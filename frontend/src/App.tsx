@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect, useCallback } from 'react';
 import { Knob } from './components/Knob';
 import { LedGroupBtn } from './components/LedGroupBtn';
 import { HelpButton } from './components/HelpButton';
-import { WaveSaw, WaveSquare } from './components/Waves';
+import { WaveSaw, WaveSquare, WaveSine, WaveNoise } from './components/Waves';
 import { FrontPage } from './components/FrontPage';
 import { CheckupPage } from './components/CheckupPage';
 import { TutorialPage } from './components/TutorialPage';
@@ -30,21 +30,7 @@ const PIANO_KEYS = [
   { note: 'D#5', key: 'P', type: 'black', isBlack: true },
 ];
 
-function WaveSine() {
-  return (
-    <svg className="wave-icon" viewBox="0 0 24 12" aria-hidden="true">
-      <path d="M1 6 C4 1, 8 1, 12 6 S20 11, 23 6" />
-    </svg>
-  );
-}
 
-function WaveNoise() {
-  return (
-    <svg className="wave-icon" viewBox="0 0 24 12" aria-hidden="true">
-      <path d="M1 8 L4 3 L7 9 L10 2 L13 8 L16 4 L19 10 L23 5" />
-    </svg>
-  );
-}
 
 // ── Waveform index ↔ backend string mapping ─────────────────
 const WAVEFORM_NAMES: Waveform[] = ['square', 'sine', 'saw', 'noise'];
@@ -526,7 +512,6 @@ export default function App() {
   const handleNoteStart = (note: string) => {
     if (!activeNotes.has(note)) {
       const freq = getNoteFrequency(note);
-      console.log(`MIDI Note On: ${note} (${freq.toFixed(2)} Hz)`);
       synth.sendNoteOn(note, freq);
       setActiveNotes(prev => new Set(prev).add(note));
     }
@@ -535,7 +520,6 @@ export default function App() {
   const handleNoteEnd = (note: string) => {
     if (activeNotes.has(note)) {
       const freq = getNoteFrequency(note);
-      console.log(`MIDI Note Off: ${note} (${freq.toFixed(2)} Hz)`);
       synth.sendNoteOff(note, freq);
       setActiveNotes(prev => {
         const next = new Set(prev);
@@ -547,7 +531,7 @@ export default function App() {
 
   return (
     <>
-      {currentView === 'front' && <FrontPage onNavigate={(v) => setCurrentView(v === 'synth' ? 'checkup' : v)} onLearn={handleLearnClick} />}
+      {currentView === 'front' && <FrontPage synth={synth} onNavigate={(v) => setCurrentView(v === 'synth' ? 'checkup' : v)} onLearn={handleLearnClick} />}
       {currentView === 'checkup' && <CheckupPage synth={synth} onComplete={() => setCurrentView('synth')} onBack={() => { setCurrentView('front'); setTutorialMode(false); }} />}
       {currentView === 'tutorial' && <TutorialPage onClose={() => setCurrentView('front')} />}
       {currentView === 'synth' && (
