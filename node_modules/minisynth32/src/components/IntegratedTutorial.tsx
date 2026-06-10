@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { X, Lightbulb, ArrowLeft, ArrowRight, CheckCircle2 } from 'lucide-react';
+
 
 export type TutorialStep = {
   id: string;
@@ -741,83 +743,82 @@ export function IntegratedTutorial({
   };
 
   return (
-    <div className="integrated-tutorial">
-      <div className="integrated-tutorial__header">
-        <button
-          className="integrated-tutorial__close-btn"
-          onClick={onClose}
-          aria-label="Fechar tutorial"
-        >
-          ✕
-        </button>
-        <h3 className="integrated-tutorial__title">
-          {currentStep.title}
-          {isCompleted && <span className="integrated-tutorial__check">✓</span>}
-        </h3>
-        <p className="integrated-tutorial__counter">
+    <div className="flex flex-col h-full bg-background border border-border rounded-xl shadow-sm overflow-hidden animate-in fade-in slide-in-from-right-4 duration-300">
+      <div className="flex items-center justify-between p-4 border-b border-border bg-panel">
+        <div className="flex items-center gap-3">
+          <button onClick={onClose} className="p-1 hover:bg-border/50 rounded-md text-textDim transition-colors" aria-label="Fechar tutorial">
+            <X size={16} />
+          </button>
+          <h3 className="font-bold text-[11px] uppercase tracking-widest text-text flex items-center gap-2">
+            {currentStep.title}
+            {isCompleted && <CheckCircle2 size={14} className="text-primary" />}
+          </h3>
+        </div>
+        <span className="text-[9px] font-mono text-textDim font-bold bg-background px-2 py-0.5 rounded border border-border">
           {currentStepIndex + 1}/{totalSteps}
-        </p>
+        </span>
       </div>
 
-      <div className="integrated-tutorial__content">
-        <p className="integrated-tutorial__description">{currentStep.description}</p>
+      <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-6">
+        <p className="text-sm text-text font-medium leading-relaxed">{currentStep.description}</p>
 
-        <ul className="integrated-tutorial__details">
+        <ul className="flex flex-col gap-2">
           {currentStep.details.map((detail, index) => (
-            <li key={index}>{detail}</li>
+            <li key={index} className="flex items-start gap-2 text-xs text-textDim">
+              <span className="w-1 h-1 rounded-full bg-primary mt-1.5 flex-shrink-0" />
+              {detail}
+            </li>
           ))}
         </ul>
 
-        <div className="integrated-tutorial__tip">
-          <span className="integrated-tutorial__tip-icon">Dica</span>
-          <p>{currentStep.tip}</p>
+        <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 flex gap-3 mt-auto">
+          <Lightbulb size={18} className="text-primary flex-shrink-0" />
+          <p className="text-xs text-primary font-medium">{currentStep.tip}</p>
         </div>
       </div>
 
-      <div className="integrated-tutorial__progress">
-        <div className="integrated-tutorial__progress-bar">
+      <div className="p-4 bg-panel border-t border-border flex flex-col gap-4">
+        <div className="h-1 w-full bg-background rounded-full overflow-hidden">
           <div
-            className="integrated-tutorial__progress-fill"
-            style={{
-              width: `${((currentStepIndex + 1) / totalSteps) * 100}%`,
-            }}
-          ></div>
-        </div>
-      </div>
-
-      <div className="integrated-tutorial__footer">
-        <button
-          className="integrated-tutorial__nav-btn"
-          onClick={prevStep}
-          disabled={currentStepIndex === 0}
-        >
-          ← Anterior
-        </button>
-
-        <div className="integrated-tutorial__dots">
-          {Array.from({ length: totalSteps }).map((_, index) => (
-            <button
-              key={index}
-              className={`integrated-tutorial__dot ${
-                index === currentStepIndex ? 'integrated-tutorial__dot--active' : ''
-              } ${
-                completedTasks.has(tutorials[index].id)
-                  ? 'integrated-tutorial__dot--completed'
-                  : ''
-              }`}
-              onClick={() => goToStep(index)}
-              aria-label={`Ir para etapa ${index + 1}`}
-            ></button>
-          ))}
+            className="h-full bg-primary transition-all duration-300"
+            style={{ width: `${((currentStepIndex + 1) / totalSteps) * 100}%` }}
+          />
         </div>
 
-        <button
-          className="integrated-tutorial__nav-btn"
-          onClick={nextStep}
-          disabled={currentStepIndex === totalSteps - 1}
-        >
-          Próxima →
-        </button>
+        <div className="flex items-center justify-between">
+          <button
+            onClick={prevStep}
+            disabled={currentStepIndex === 0}
+            className="p-2 text-textDim hover:text-text disabled:opacity-30 transition-colors"
+          >
+            <ArrowLeft size={16} />
+          </button>
+
+          <div className="flex gap-1.5">
+            {Array.from({ length: totalSteps }).map((_, index) => (
+              <button
+                key={index}
+                onClick={() => goToStep(index)}
+                className={`w-2 h-2 rounded-full transition-all ${
+                  index === currentStepIndex
+                    ? 'bg-primary scale-125'
+                    : completedTasks.has(tutorials[index].id)
+                    ? 'bg-primary/40'
+                    : 'bg-border'
+                }`}
+                aria-label={`Ir para etapa ${index + 1}`}
+              />
+            ))}
+          </div>
+
+          <button
+            onClick={nextStep}
+            disabled={currentStepIndex === totalSteps - 1}
+            className="p-2 text-textDim hover:text-text disabled:opacity-30 transition-colors"
+          >
+            <ArrowRight size={16} />
+          </button>
+        </div>
       </div>
     </div>
   );

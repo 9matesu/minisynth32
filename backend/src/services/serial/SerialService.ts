@@ -160,7 +160,8 @@ export class SerialService {
       const message = parseSerialLine(line.trim());
       this.events.emit('message', message);
     } catch (error) {
-      this.emitError(error instanceof Error ? error : new Error(String(error)));
+      // Ignore serial noise/parse errors instead of dropping the connection
+      logger.warn(`Failed to parse serial line: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

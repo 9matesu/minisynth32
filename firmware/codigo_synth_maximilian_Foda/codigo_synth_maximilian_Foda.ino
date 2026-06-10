@@ -10,11 +10,11 @@
 #define OLED_SDA 21
 #define OLED_SCL 17
 
-#define POT_ATTACK 2
-#define POT_DECAY 4
-#define POT_FILTER 5
-#define POT_WAVE 6
-#define POT_VOLUME 7
+#define POT_ATTACK 32
+#define POT_DECAY 33 
+#define POT_FILTER 34
+#define POT_WAVE 35
+#define POT_VOLUME 36
 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
@@ -750,9 +750,9 @@ void setup() {
 
   auto cfg = out.defaultConfig(TX_MODE);
   cfg.is_master = true;
-  cfg.pin_bck = 3;
-  cfg.pin_ws = 1;
-  cfg.pin_data = 9;
+  cfg.pin_bck = 26;
+  cfg.pin_ws = 25;
+  cfg.pin_data = 27;
   cfg.sample_rate = SAMPLE_RATE;
   cfg.buffer_size = 512;
 
