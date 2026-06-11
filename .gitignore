@@ -1,0 +1,31 @@
+# Dependências do Node
+node_modules/
+dist/
+build/
+
+# Bancos de Dados
+*.sqlite
+*.sqlite3
+*.db
+backend/data/
+
+# Agentes e Arquivos Sensíveis
+.agents/
+.agent/
+.env
+.env.local
+.gemini/
+brain/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Arduino/C++ build
+*.elf
+*.bin
+*.hex
+*.uf2
+firmware/build/

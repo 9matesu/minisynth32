@@ -8,7 +8,7 @@ echo "=========================================="
 echo "[1/5] Updating and installing system dependencies..."
 sudo apt-get update
 # We install build-essential and python3 because 'serialport' node module often needs to compile native bindings on Linux if prebuilds are missing
-sudo apt-get install -y curl git build-essential python3 npm nodejs jq
+sudo apt-get install -y curl git build-essential python3 npm nodejs jq sqlite3 libsqlite3-dev
 
 echo "[2/5] Installing Arduino CLI..."
 if ! command -v arduino-cli &> /dev/null; then

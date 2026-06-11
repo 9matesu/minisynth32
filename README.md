@@ -20,7 +20,7 @@ MiniSynth32 é um sintetizador digital baseado em ESP32-S3 com interface web par
 
 O sistema foi concebido para executar síntese no ESP32-S3, transmitir estados e parâmetros ao servidor por conexão serial USB e expor esse estado ao front-end por WebSocket em tempo real. Além disso, o servidor deve disponibilizar API REST para presets, persistir dados em SQLite e servir os arquivos estáticos do front-end React em ambiente Linux. O desenvolvimento ocorreu com auxílio de ferramentas de IA, tal como Gemini, Codex e Claude Code.
 
-A interface do projeto organiza os controles em torno de parâmetros típicos de um sintetizador subtrativo, com seções dedicadas a seleção de forma de onda, afinação, nível, envelope ADSR, filtro, arpeggiator, monitor de onda, teclado virtual e diretório de presets.
+A interface do projeto organiza os controles em torno de parâmetros típicos de um sintetizador subtrativo. Ela também traz um módulo de **Tutorial Integrado** com aulas interativas sobre Síntese Sonora, um sistema de Conquistas/XP salvo diretamente no banco de dados e funções dinâmicas (ex: reproduzir melodias MIDI famosas de presets no próprio app).
 
 ## Arquitetura
 
@@ -55,9 +55,9 @@ ESP32-S3 <-> Serial USB <-> Node.js/Express <-> WebSocket/REST <-> React
 
 ## Front-end
 
-O front-end é uma aplicação React orientada a controle em tempo real, com componentes equivalentes a knobs, toggles, seletores e teclado virtual, organizados em painéis funcionais. Pela interface disponível, os grupos visuais principais incluem seleção de waveform, controle de tune e level, arpeggiator, envelope ADSR, filtro, monitor de onda, teclado virtual e gerenciamento de presets.
+O front-end é uma aplicação React orientada a controle em tempo real, com componentes equivalentes a knobs, toggles, seletores e teclado virtual, organizados em painéis funcionais. Pela interface disponível, os grupos visuais principais incluem seleção de waveform, controle de tune e level, arpeggiator, envelope ADSR, filtro, monitor de onda em tempo real (OLED simulado), teclado virtual e gerenciamento de presets.
 
-Nos requisitos funcionais, a interface deve exibir parâmetros de OSC1, filtro, ADSR e arpeggiator, além de enviar alterações ao ESP32 por intermédio do back-end via WebSocket. Também deve permitir salvar e carregar presets via API REST, reforçando a separação entre camada de apresentação e camada de persistência.
+Nos requisitos funcionais, a interface deve exibir parâmetros do sintetizador e sincronizá-los bidirecionalmente, providenciar **ajuda interativa em tempo real** ao passar o mouse sobre botões/knobs, e suportar um sistema robusto de aprendizado (com lições que travam/destravam painéis até o usuário dominar os controles corretos, premiando XP no final).
 
 ## Back-end
 
@@ -67,12 +67,11 @@ Além da comunicação em tempo real, o servidor precisa oferecer CRUD completo 
 
 Responsabilidades esperadas do back-end:
 
-- gerenciamento da porta serial do ESP32
+- gerenciamento bidirecional da porta serial do ESP32
 - sincronização de estado via WebSocket
-- persistência de presets em SQLite
-- exposição de API REST para consulta e atualização de presets
+- persistência de presets, mapeamentos MIDI, Perfil de Usuário, XP e progresso do tutorial em SQLite
+- exposição de API REST
 - hosting do build do front-end
-- registro de erros operacionais
 
 ## Banco de dados
 
@@ -97,8 +96,10 @@ O conjunto principal descrito para o projeto inclui os seguintes componentes:
 
 - ESP32-S3
 - PCM5102A 
-- Display OLED SSD1306 de 0,96 polegadas
+- Display OLED SSD1306 de 0,96 polegadas (Interface mista OLED/App)
 - Potenciômetros de 10K
+- Botões Push (Acorde Maior, Acorde Menor, Wave, Arpeggiator)
+  - *Dica:* Segurar os botões de acorde atua como "modificador". Ao enviar uma nota pelo frontend com o botão pressionado na protoboard, um acorde completo polifônico será tocado/arpejado!
 - Entrada USB para comunicação com controlador MIDI e/ou conexão serial com PC
 
 ## Estrutura do repositório
@@ -148,7 +149,16 @@ minisynth32/
 - módulo PCM5102A ligado ao ESP32 e à saída de áudio do equipamento
 - cabo USB para comunicação serial entre ESP32 e computador/host
 
-### 1. Clonar o repositório
+### 1. Execute o Assistente de Configuração Automática
+
+Caso utilize Linux Mint ou derivados do Ubuntu/Debian, criamos um assistente automatizado que vai garantir que o compilador do Arduino, bibliotecas do DSP, NodeJS e SQLite3 estejam corretos:
+
+```bash
+chmod +x setup-wizard-linux.sh
+./setup-wizard-linux.sh
+```
+
+### 2. Clonar o repositório
 
 ```bash
 git clone <URL_DO_REPOSITORIO>
