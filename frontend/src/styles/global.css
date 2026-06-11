@@ -6,6 +6,7 @@
 
 @layer base {
   body {
-    @apply bg-background text-text font-sans antialiased m-0 p-0 min-h-screen flex justify-center items-start;
+    @apply bg-background font-sans antialiased m-0 p-0 min-h-screen flex justify-center items-start;
+    color: #2D2D2D;
   }
 }

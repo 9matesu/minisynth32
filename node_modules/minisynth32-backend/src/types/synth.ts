@@ -5,6 +5,7 @@ export type SynthParamSource = 'frontend' | 'serial' | 'preset' | 'system';
 export type SynthParamPath =
   | 'osc1.waveform'
   | 'osc1.octave'
+  | 'osc1.detune'
   | 'osc1.volume'
   | 'filter.enabled'
   | 'filter.cutoff'
@@ -18,11 +19,13 @@ export type SynthParamPath =
   | 'arpeggiator.enabled'
   | 'arpeggiator.rate'
   | 'global.midiChannel'
-  | 'waveDisplay.samples';
+  | 'global.voices'
+  | 'global.multiCore';
 
 export interface Osc1State {
   waveform: Waveform;
   octave: number;
+  detune: number;
   volume: number;
 }
 
@@ -48,10 +51,8 @@ export interface ArpeggiatorState {
 
 export interface GlobalState {
   midiChannel: number;
-}
-
-export interface WaveDisplayState {
-  samples: number[];
+  voices: number;
+  multiCore: boolean;
 }
 
 export interface SynthState {
@@ -60,7 +61,6 @@ export interface SynthState {
   ampAdsr: AmpAdsrState;
   arpeggiator: ArpeggiatorState;
   global: GlobalState;
-  waveDisplay: WaveDisplayState;
 }
 
 export interface SynthParamChange {
@@ -73,6 +73,7 @@ export const defaultSynthState: SynthState = {
   osc1: {
     waveform: 'saw',
     octave: 0,
+    detune: 0,
     volume: 72,
   },
   filter: {
@@ -94,8 +95,7 @@ export const defaultSynthState: SynthState = {
   },
   global: {
     midiChannel: 1,
-  },
-  waveDisplay: {
-    samples: [],
-  },
+    voices: 4,
+    multiCore: true,
+  }
 };

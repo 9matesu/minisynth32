@@ -1,2 +1,2 @@
-import { DatabaseSync } from 'node:sqlite';
-export declare const getDatabase: () => DatabaseSync;
+import { type Database as IDatabase } from 'better-sqlite3';
+export declare const getDatabase: () => IDatabase;

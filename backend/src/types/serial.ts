@@ -37,6 +37,9 @@ export type SerialMessage =
       type: 'note_off';
       note: string;
       freq: number;
+    }
+  | {
+      type: 'panic';
     };
 
 export interface SerialStatusPayload {

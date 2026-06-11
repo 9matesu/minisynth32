@@ -1,7 +1,7 @@
 import type { PresetDto } from './dtos.js';
 import type { SerialStatusPayload } from './serial.js';
 import type { SynthParamPath, SynthState } from './synth.js';
-export type WebSocketEventName = 'connection:ready' | 'synth:state' | 'synth:param:set' | 'synth:param:changed' | 'preset:save' | 'preset:load' | 'preset:list' | 'serial:status' | 'serial:error' | 'system:error';
+export type WebSocketEventName = 'connection:ready' | 'synth:state' | 'synth:param:set' | 'synth:param:changed' | 'note:on' | 'note:off' | 'preset:save' | 'preset:load' | 'preset:list' | 'preset:delete' | 'serial:status' | 'serial:error' | 'system:error' | 'panic';
 export interface WsEnvelope<TEvent extends WebSocketEventName = WebSocketEventName, TPayload = unknown> {
     event: TEvent;
     payload: TPayload;
@@ -28,4 +28,11 @@ export interface PresetLoadPayload {
 }
 export interface PresetListPayload {
     presets: PresetDto[];
+}
+export interface NoteOnPayload {
+    note: string;
+    freq: number;
+}
+export interface NoteOffPayload {
+    note?: string;
 }

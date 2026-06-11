@@ -28,6 +28,8 @@ export interface UseSynthStateReturn {
   loadPreset: (id: number) => void;
   /** Save current state as new preset */
   savePreset: (name: string, description?: string) => void;
+  /** Delete a preset by id */
+  deletePreset: (id: number) => void;
   /** Refresh preset list from backend */
   refreshPresets: () => void;
   /** Serial port status from backend */
@@ -42,6 +44,8 @@ export interface UseSynthStateReturn {
   sendNoteOn: (note: string, freq: number) => void;
   /** Send MIDI Note Off */
   sendNoteOff: (note: string, freq: number) => void;
+  /** Send Panic / All Notes Off */
+  sendPanic: () => void;
 }
 
 // ── Hook ─────────────────────────────────────────────────────
@@ -54,6 +58,10 @@ export function useSynthState(): UseSynthStateReturn {
   const [serialStatus, setSerialStatus] = useState<SerialStatusPayload | null>(null);
   const [ready, setReady] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (lastError) console.error('[Synth State Error]', lastError);
+  }, [lastError]);
 
   // Ref to avoid stale closures in WS event handlers
   const stateRef = useRef(state);
@@ -105,7 +113,10 @@ export function useSynthState(): UseSynthStateReturn {
     unsubs.push(
       ws.on('preset:save', (payload) => {
         const saved = payload as PresetDto;
-        setPresets((prev) => [saved, ...prev]);
+        setPresets((prev) => {
+          if (prev.some((p) => p.id === saved.id)) return prev;
+          return [saved, ...prev];
+        });
       })
     );
 
@@ -113,6 +124,14 @@ export function useSynthState(): UseSynthStateReturn {
     unsubs.push(
       ws.on('preset:load', (_payload) => {
         // State will be updated via the synth:state broadcast
+      })
+    );
+
+    // Preset delete confirmation
+    unsubs.push(
+      ws.on('preset:delete', (payload) => {
+        const data = payload as { id: number };
+        setPresets((prev) => prev.filter(p => p.id !== data.id));
       })
     );
 
@@ -180,6 +199,13 @@ export function useSynthState(): UseSynthStateReturn {
     [ws]
   );
 
+  const deletePreset = useCallback(
+    (id: number) => {
+      ws.send('preset:delete', { id });
+    },
+    [ws]
+  );
+
   const refreshPresets = useCallback(() => {
     ws.send('preset:list', {});
   }, [ws]);
@@ -192,6 +218,10 @@ export function useSynthState(): UseSynthStateReturn {
     ws.send('note:off', { note, freq });
   }, [ws]);
 
+  const sendPanic = useCallback(() => {
+    ws.send('panic', {});
+  }, [ws]);
+
   return {
     state,
     setParam,
@@ -199,9 +229,11 @@ export function useSynthState(): UseSynthStateReturn {
     presets,
     loadPreset,
     savePreset,
+    deletePreset,
     refreshPresets,
     sendNoteOn,
     sendNoteOff,
+    sendPanic,
     serialStatus,
     connectionState: ws.connectionState,
     ready,

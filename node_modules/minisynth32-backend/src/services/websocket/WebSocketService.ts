@@ -36,6 +36,12 @@ export class WebSocketService {
 
   private registerServerEvents() {
     this.wss.on('connection', (socket) => {
+      // Catch ECONNRESET from abrupt client disconnects (e.g. HMR reload)
+      socket.on('error', (err) => {
+        if ((err as NodeJS.ErrnoException).code === 'ECONNRESET') return;
+        logger.warn('WebSocket client error', { message: err.message });
+      });
+
       socket.send(
         JSON.stringify({
           event: 'connection:ready',
@@ -83,6 +89,10 @@ export class WebSocketService {
         this.deps.serial.sendNoteOff(payload.note, payload.freq);
         return;
       }
+      case 'panic': {
+        this.deps.serial.sendPanic();
+        return;
+      }
       case 'preset:save': {
         const preset = this.deps.presets.create(message.payload as never);
         this.broadcast('preset:list', { presets: this.deps.presets.list() });
@@ -94,6 +104,13 @@ export class WebSocketService {
         const preset = this.deps.presets.get(payload.id);
         this.deps.synthState.replaceState(preset.state, 'preset');
         socket.send(JSON.stringify({ event: 'preset:load', payload: preset, requestId: message.requestId } satisfies WsEnvelope));
+        return;
+      }
+      case 'preset:delete': {
+        const payload = message.payload as { id: number };
+        this.deps.presets.delete(payload.id);
+        this.broadcast('preset:list', { presets: this.deps.presets.list() });
+        socket.send(JSON.stringify({ event: 'preset:delete', payload: { id: payload.id }, requestId: message.requestId } satisfies WsEnvelope));
         return;
       }
       case 'preset:list':

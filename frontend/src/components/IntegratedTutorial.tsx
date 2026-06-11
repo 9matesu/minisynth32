@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { X, Lightbulb, ArrowLeft, ArrowRight, CheckCircle2 } from 'lucide-react';
-
+import { X, Lightbulb, ArrowLeft, ArrowRight, CheckCircle2, Play, Square } from 'lucide-react';
+import type { Patch } from '../App';
+import { type NoteEvent, JUMP_MELODY, TAKE_ON_ME_MELODY } from '../lib/sequencer';
 
 export type TutorialStep = {
   id: string;
@@ -9,668 +10,178 @@ export type TutorialStep = {
   targetControl: string;
   details: string[];
   tip: string;
+  validate?: (patch: any) => boolean;
 };
 
-const CLASS_TUTORIALS: Record<string, TutorialStep[]> = {
-  'class-1': [
-    {
-      id: 'wave-select',
-      title: 'Escolher Forma de Onda',
-      description: 'Clique no botão de seleção de onda para mudar entre Square, Sine, Sawtooth ou Noise.',
-      targetControl: 'wave-select',
-      details: [
-        'Square: Som brilhante e percussivo',
-        'Sine: Som puro e macio',
-        'Saw: Som rico em harmônicos',
-        'Noise: Som ruidoso',
-      ],
-      tip: 'Comece com Sine para entender harmônicos básicos.',
-    },
-    {
-      id: 'tune',
-      title: 'Ajustar Frequência (Tune)',
-      description: 'Use o knob "Tune" para alterar a frequência do oscillador.',
-      targetControl: 'knob-tune',
-      details: [
-        'Valores baixos (0-30): Tons graves',
-        'Valores médios (40-60): Faixa média',
-        'Valores altos (70-100): Tons agudos',
-      ],
-      tip: 'Experimente valores entre 30-80 para sons musicais.',
-    },
-    {
-      id: 'level',
-      title: 'Controlar Volume (Level)',
-      description: 'Ajuste o knob "Level" para aumentar ou diminuir o volume de saída.',
-      targetControl: 'knob-level',
-      details: [
-        'Evite distorção em valores muito altos',
-        'Mantenha dinâmica musical',
-        'Importante para mixagem com múltiplas fontes',
-      ],
-      tip: 'Mantenha entre 50-90 para melhor dinâmica.',
-    },
-    {
-      id: 'attack',
-      title: 'ADSR - Attack (Ataque)',
-      description: 'Ajuste o "Attack" para controlar quanto tempo leva para o som atingir o volume máximo.',
-      targetControl: 'knob-attack',
-      details: [
-        'Valores baixos (0-20): Ataque percussivo',
-        'Valores médios (30-50): Ataque suave',
-        'Valores altos (60-100): entrada gradual',
-      ],
-      tip: 'Para sons percussivos, use valores baixos.',
-    },
-    {
-      id: 'decay',
-      title: 'ADSR - Decay (Decaimento)',
-      description: 'Ajuste o "Decay" para o tempo de queda até o nível sustentado.',
-      targetControl: 'knob-decay',
-      details: [
-        'Afeta a transição do pico ao nível de sustain',
-        'Valores baixos: transição rápida',
-        'Valores altos: transição musical',
-      ],
-      tip: 'Combinado com sustain, cria o "corpo" do som.',
-    },
-    {
-      id: 'sustain',
-      title: 'ADSR - Sustain (Sustentação)',
-      description: 'Ajuste o "Sustain" para o nível mantido enquanto a nota está ativa.',
-      targetControl: 'knob-sustain',
-      details: [
-        'Valores altos: som continua forte',
-        'Valores baixos: som evanescente (staccato)',
-        'Afeta como o som "respira"',
-      ],
-      tip: 'Para pads, use sustain alto.',
-    },
-    {
-      id: 'release',
-      title: 'ADSR - Release (Liberação)',
-      description: 'Ajuste o "Release" para o tempo de desvanecimento após soltar a nota.',
-      targetControl: 'knob-release',
-      details: [
-        'Valores baixos: som seco e cortante',
-        'Valores altos: cauda sonora longa',
-        'Cria sensação de espaço e reverb',
-      ],
-      tip: 'Aumente para sons mais naturais.',
-    },
-    {
-      id: 'filter-toggle',
-      title: 'Ativar o Filtro',
-      description: 'Clique no botão do filtro para ativar o controle de timbre.',
-      targetControl: 'filter-toggle',
-      details: [
-        'Filtros removem ou atenuam frequências altas',
-        'Essencial para síntese subtrativa',
-        'Cria movimento e interesse tímbrico',
-      ],
-      tip: 'Ative o filtro para controle tímbrico avançado.',
-    },
-    {
-      id: 'cutoff',
-      title: 'Cutoff - Frequência de Corte',
-      description: 'Ajuste o knob "Cutoff" para definir onde o filtro começa a atuar.',
-      targetControl: 'knob-cutoff',
-      details: [
-        'Valores baixos: som escuro',
-        'Valores altos: som brilhante',
-        'Varie para criar movimento dinâmico',
-      ],
-      tip: 'Varie cutoff para criar movimento.',
-    },
-    {
-      id: 'resonance',
-      title: 'Resonance - Ênfase do Filtro',
-      description: 'Ajuste o "Resonance" para criar ênfase na frequência de corte.',
-      targetControl: 'knob-resonance',
-      details: [
-        'Valores baixos: filtro suave',
-        'Valores altos: pico pronunciado',
-        'Cria efeito "wah-wah"',
-      ],
-      tip: 'Use com cuidado - valores altos criam efeitos dramáticos.',
-    },
-    {
-      id: 'envelope',
-      title: 'Envelope do Filtro',
-      description: 'Ajuste o knob "Envelope" para modular o cutoff com o ADSR.',
-      targetControl: 'knob-envelope',
-      details: [
-        'Valores positivos: cutoff sobe com a nota',
-        'Valores negativos: cutoff desce',
-        'Cria efeito "sweep" característico',
-      ],
-      tip: 'Experimente valores entre 40-80.',
-    },
-    {
-      id: 'filter-slope',
-      title: 'Slope do Filtro',
-      description: 'Clique no botão "Slope" para alternar entre 12dB e 24dB.',
-      targetControl: 'filter-slope',
-      details: [
-        '12 dB: Filtro suave e sutil',
-        '24 dB: Filtro mais agressivo',
-        'Maior inclinação = maior contraste tímbrico',
-      ],
-      tip: 'Use 24 dB para efeitos dramáticos.',
-    },
-  ],
-  'class-2': [
-    {
-      id: 'sine-wave',
-      title: 'Selecione Sine Wave',
-      description: 'Para um lead suave, comece selecionando a onda Sine.',
-      targetControl: 'wave-select',
-      details: [
-        'Sine wave é perfeita para leads melódicos',
-        'Produz um som puro e suave',
-        'Excelente para expressividade musical',
-      ],
-      tip: 'Clique no botão Wave Select até chegar em Sine.',
-    },
-    {
-      id: 'sine-tune',
-      title: 'Ajuste a Frequência',
-      description: 'Configure o Tune para uma faixa média, em torno de 50-70.',
-      targetControl: 'knob-tune',
-      details: [
-        'Valores 50-70: Excelente para leads vocais',
-        'Cria presença no espectro médio',
-        'Permite melodias expressivas',
-      ],
-      tip: 'Use valores entre 55-65 para leads clássicos.',
-    },
-    {
-      id: 'sine-attack',
-      title: 'Ataque Rápido',
-      description: 'Configure Attack em torno de 5-15 para respostas rápidas.',
-      targetControl: 'knob-attack',
-      details: [
-        'Attack rápido: resposta imediata',
-        'Ideal para leads expressivos',
-        'Permite articulação clara',
-      ],
-      tip: 'Valores 8-12 criam leads agressivos.',
-    },
-    {
-      id: 'sine-sustain',
-      title: 'Sustain Forte',
-      description: 'Configure Sustain alto, entre 70-90.',
-      targetControl: 'knob-sustain',
-      details: [
-        'Sustain alto mantém a nota forte',
-        'Cria continuidade no som',
-        'Essencial para leads expressivos',
-      ],
-      tip: 'Sustain 80+ garante presença constante.',
-    },
-    {
-      id: 'sine-decay',
-      title: 'Decay Rápido',
-      description: 'Configure Decay em 10-25 para transição rápida.',
-      targetControl: 'knob-decay',
-      details: [
-        'Decay rápido: transição suave',
-        'Evita sons flutuantes',
-        'Mantém clareza melódica',
-      ],
-      tip: 'Valores 15-20 funcionam bem para leads.',
-    },
-    {
-      id: 'sine-release',
-      title: 'Release Curto',
-      description: 'Configure Release entre 15-30.',
-      targetControl: 'knob-release',
-      details: [
-        'Release curto: corte limpo',
-        'Evita cauda sonora excessiva',
-        'Mantém articulação clara',
-      ],
-      tip: 'Release 20-25 é ideal para leads.',
-    },
-    {
-      id: 'sine-filter-toggle',
-      title: 'Ative o Filtro',
-      description: 'Clique para ativar o filtro de corte.',
-      targetControl: 'filter-toggle',
-      details: [
-        'Adiciona movimento tímbrico',
-        'Cria interesse harmônico',
-        'Permite expressividade dinâmica',
-      ],
-      tip: 'Filtro ativo deixa o som mais vivo.',
-    },
-    {
-      id: 'sine-cutoff',
-      title: 'Cutoff Aberto',
-      description: 'Configure Cutoff em 70-85 para brilho.',
-      targetControl: 'knob-cutoff',
-      details: [
-        'Cutoff alto: som brilhante',
-        'Revela harmônicos ricos',
-        'Cria presença na faixa alta',
-      ],
-      tip: 'Valores 75-80 são ótimos para leads brilhantes.',
-    },
-    {
-      id: 'sine-resonance',
-      title: 'Ressonância Moderada',
-      description: 'Configure Resonance em 30-50.',
-      targetControl: 'knob-resonance',
-      details: [
-        'Ressonância moderada: destaca o cutoff',
-        'Cria presença em frequências específicas',
-        'Evita bicos extremos',
-      ],
-      tip: 'Valores 40-45 criam bom destaque.',
-    },
-    {
-      id: 'sine-envelope',
-      title: 'Envelope do Filtro',
-      description: 'Configure Envelope em 20-40.',
-      targetControl: 'knob-envelope',
-      details: [
-        'Modula o cutoff com o ADSR',
-        'Cria movimento tímbrico',
-        'Adiciona expressividade',
-      ],
-      tip: 'Valores 30-35 criam varreduras musicais.',
-    },
-  ],
-  'class-3': [
-    {
-      id: 'pad-wave',
-      title: 'Selecione a Onda',
-      description: 'Para um pad, use Sine ou Sawtooth. Comece com Sine.',
-      targetControl: 'wave-select',
-      details: [
-        'Sine: pad suave e etéreo',
-        'Sawtooth: pad mais rico em harmônicos',
-        'Escolha conforme o estilo desejado',
-      ],
-      tip: 'Sine cria pads mais atmosféricos.',
-    },
-    {
-      id: 'pad-tune',
-      title: 'Frequência do Pad',
-      description: 'Configure Tune em 40-60 para uma faixa média-grave.',
-      targetControl: 'knob-tune',
-      details: [
-        'Faixa grave: cria fundação sonora',
-        'Faixa média: equilíbrio e presença',
-        'Pads funcionam bem em qualquer faixa',
-      ],
-      tip: 'Valores 45-55 são ideais para pads.',
-    },
-    {
-      id: 'pad-attack',
-      title: 'Ataque Longo',
-      description: 'Configure Attack em 30-60 para fade-in longo.',
-      targetControl: 'knob-attack',
-      details: [
-        'Attack longo: entrada suave e atmosférica',
-        'Cria transição gradual',
-        'Essencial para pads envolventes',
-      ],
-      tip: 'Attack 40-50 cria pads clássicos.',
-    },
-    {
-      id: 'pad-sustain',
-      title: 'Sustain Máximo',
-      description: 'Configure Sustain entre 85-100.',
-      targetControl: 'knob-sustain',
-      details: [
-        'Sustain alto: som continua forte',
-        'Pads precisam de sustain máximo',
-        'Cria fundação sonora estável',
-      ],
-      tip: 'Sustain 90+ é essencial para pads.',
-    },
-    {
-      id: 'pad-decay',
-      title: 'Decay Longo',
-      description: 'Configure Decay em 40-70.',
-      targetControl: 'knob-decay',
-      details: [
-        'Decay longo: transição musical',
-        'Evita queda abrupta',
-        'Cria naturalidade no som',
-      ],
-      tip: 'Valores 50-60 funcionam bem.',
-    },
-    {
-      id: 'pad-release',
-      title: 'Release Longo',
-      description: 'Configure Release em 50-80 para cauda sonora.',
-      targetControl: 'knob-release',
-      details: [
-        'Release longo: som desvanece gradualmente',
-        'Cria efeito reverberado',
-        'Essencial para pads atmósféricos',
-      ],
-      tip: 'Release 60-70 é clássico para pads.',
-    },
-    {
-      id: 'pad-filter-toggle',
-      title: 'Ative o Filtro',
-      description: 'Clique para ativar filtro de movimento tímbrico.',
-      targetControl: 'filter-toggle',
-      details: [
-        'Filtro adiciona movimento',
-        'Cria dinâmica nos pads',
-        'Evita som estático',
-      ],
-      tip: 'Filtro ativo melhora muito pads.',
-    },
-    {
-      id: 'pad-cutoff',
-      title: 'Cutoff Moderado',
-      description: 'Configure Cutoff em 50-70.',
-      targetControl: 'knob-cutoff',
-      details: [
-        'Cutoff moderado: equilíbrio de brilho',
-        'Não muito escuro, não muito brilhante',
-        'Permite detalhe harmônico',
-      ],
-      tip: 'Valores 60-65 funcionam bem.',
-    },
-    {
-      id: 'pad-resonance',
-      title: 'Ressonância Sutil',
-      description: 'Configure Resonance em 20-40.',
-      targetControl: 'knob-resonance',
-      details: [
-        'Ressonância baixa: som liso',
-        'Evita picos desconfortáveis',
-        'Mantém qualidade de pad suave',
-      ],
-      tip: 'Valores 25-30 são ideais.',
-    },
-    {
-      id: 'pad-envelope',
-      title: 'Envelope Suave',
-      description: 'Configure Envelope em 10-30.',
-      targetControl: 'knob-envelope',
-      details: [
-        'Envelope baixo: movimento sutil',
-        'Evita varreduras agressivas',
-        'Mantém caráter atmosférico',
-      ],
-      tip: 'Valores 15-20 criam pads suaves.',
-    },
-  ],
-  'class-4': [
-    {
-      id: 'snare-wave',
-      title: 'Selecione Noise',
-      description: 'Para um snare, use a onda Noise para textura percussiva.',
-      targetControl: 'wave-select',
-      details: [
-        'Noise: textura percussiva essencial',
-        'Cria corpo para o som de snare',
-        'Imprevisível e natural',
-      ],
-      tip: 'Clique até selecionar Noise (4ª opção).',
-    },
-    {
-      id: 'snare-tune',
-      title: 'Frequência de Snare',
-      description: 'Configure Tune em 40-60.',
-      targetControl: 'knob-tune',
-      details: [
-        'Faixa média: snare equilibrado',
-        'Valores mais altos: snare mais brilhante',
-        'Valores mais baixos: snare mais gordo',
-      ],
-      tip: 'Valores 50-55 são clássicos.',
-    },
-    {
-      id: 'snare-level',
-      title: 'Ajuste o Volume',
-      description: 'Configure Level em 70-85.',
-      targetControl: 'knob-level',
-      details: [
-        'Snares precisam de volume forte',
-        'Destaca o som na mistura',
-        'Cria presença impactante',
-      ],
-      tip: 'Valores 75-80 funcionam bem.',
-    },
-    {
-      id: 'snare-attack',
-      title: 'Ataque Instantâneo',
-      description: 'Configure Attack em 0-10.',
-      targetControl: 'knob-attack',
-      details: [
-        'Attack muito rápido: clique percussivo',
-        'Essencial para snares',
-        'Cria transiente responsivo',
-      ],
-      tip: 'Attack 2-5 é ideal para snares.',
-    },
-    {
-      id: 'snare-decay',
-      title: 'Decay Rápido',
-      description: 'Configure Decay em 20-40.',
-      targetControl: 'knob-decay',
-      details: [
-        'Decay rápido: som sucinto',
-        'Cria corpo percussivo',
-        'Evita cauda excessiva',
-      ],
-      tip: 'Valores 25-35 funcionam bem.',
-    },
-    {
-      id: 'snare-sustain',
-      title: 'Sustain Baixo',
-      description: 'Configure Sustain em 5-25.',
-      targetControl: 'knob-sustain',
-      details: [
-        'Sustain baixo: som seco',
-        'Snares não precisam de sustain alto',
-        'Mantém caráter percussivo',
-      ],
-      tip: 'Valores 10-20 funcionam bem.',
-    },
-    {
-      id: 'snare-release',
-      title: 'Release Rápido',
-      description: 'Configure Release em 10-25.',
-      targetControl: 'knob-release',
-      details: [
-        'Release rápido: corte percussivo',
-        'Evita cauda sonora',
-        'Mantém definição do snare',
-      ],
-      tip: 'Release 15-20 é clássico.',
-    },
-    {
-      id: 'snare-filter-toggle',
-      title: 'Ative o Filtro',
-      description: 'Clique para ativar filtro de timbre.',
-      targetControl: 'filter-toggle',
-      details: [
-        'Filtro controla brilho do snare',
-        'Cria movimento tímbrico',
-        'Essencial para snares polidos',
-      ],
-      tip: 'Filtro ativo melhora snares.',
-    },
-    {
-      id: 'snare-cutoff',
-      title: 'Cutoff Alto',
-      description: 'Configure Cutoff em 65-80.',
-      targetControl: 'knob-cutoff',
-      details: [
-        'Cutoff alto: snare brilhante',
-        'Revela detalhe do ruído',
-        'Cria presença na faixa alta',
-      ],
-      tip: 'Valores 70-75 são ideais.',
-    },
-    {
-      id: 'snare-resonance',
-      title: 'Ressonância Baixa',
-      description: 'Configure Resonance em 10-25.',
-      targetControl: 'knob-resonance',
-      details: [
-        'Ressonância baixa: som limpo',
-        'Evita ressoâncias indesejadas',
-        'Mantém clareza percussiva',
-      ],
-      tip: 'Valores 15-20 funcionam bem.',
-    },
-  ],
-  'class-5': [
-    {
-      id: 'lead-wave',
-      title: 'Selecione Square Wave',
-      description: 'Para um hard lead, comece com Square Wave.',
-      targetControl: 'wave-select',
-      details: [
-        'Square: agressivo e brilhante',
-        'Conteúdo harmônico rico',
-        'Perfeito para leads duros',
-      ],
-      tip: 'Clique para selecionar Square (1ª opção).',
-    },
-    {
-      id: 'lead-tune',
-      title: 'Frequência do Lead',
-      description: 'Configure Tune em 60-80 para uma faixa alta.',
-      targetControl: 'knob-tune',
-      details: [
-        'Faixa alta: lead agudo e cortante',
-        'Valores 70+: presença acima de tudo',
-        'Cria impacto na mistura',
-      ],
-      tip: 'Valores 70-75 são agressivos.',
-    },
-    {
-      id: 'lead-level',
-      title: 'Volume do Lead',
-      description: 'Configure Level em 80-95.',
-      targetControl: 'knob-level',
-      details: [
-        'Hard leads precisam de volume forte',
-        'Destaca o som na mistura',
-        'Cria presença dominante',
-      ],
-      tip: 'Valores 85-90 funcionam bem.',
-    },
-    {
-      id: 'lead-attack',
-      title: 'Ataque Rápido',
-      description: 'Configure Attack em 3-15.',
-      targetControl: 'knob-attack',
-      details: [
-        'Attack rápido: resposta imediata',
-        'Cria agressividade',
-        'Permite articulação clara',
-      ],
-      tip: 'Valores 5-10 são ideais.',
-    },
-    {
-      id: 'lead-decay',
-      title: 'Decay Curto',
-      description: 'Configure Decay em 10-30.',
-      targetControl: 'knob-decay',
-      details: [
-        'Decay rápido: transição agressiva',
-        'Cria movimento percussivo',
-        'Mantém clareza melódica',
-      ],
-      tip: 'Valores 15-25 funcionam bem.',
-    },
-    {
-      id: 'lead-sustain',
-      title: 'Sustain Alto',
-      description: 'Configure Sustain em 75-95.',
-      targetControl: 'knob-sustain',
-      details: [
-        'Sustain alto: nota mantém força',
-        'Essencial para leads expressivos',
-        'Cria presença constante',
-      ],
-      tip: 'Valores 85+ garantem presença.',
-    },
-    {
-      id: 'lead-release',
-      title: 'Release Rápido',
-      description: 'Configure Release em 10-30.',
-      targetControl: 'knob-release',
-      details: [
-        'Release rápido: corte limpo',
-        'Evita cauda sonora',
-        'Mantém agressividade',
-      ],
-      tip: 'Valores 15-25 funcionam bem.',
-    },
-    {
-      id: 'lead-filter-toggle',
-      title: 'Ative o Filtro',
-      description: 'Clique para ativar filtro de movimento.',
-      targetControl: 'filter-toggle',
-      details: [
-        'Filtro adiciona movimento tímbrico',
-        'Cria interesse dinâmico',
-        'Essencial para hard leads',
-      ],
-      tip: 'Filtro ativo melhora muito leads.',
-    },
-    {
-      id: 'lead-cutoff',
-      title: 'Cutoff Alto',
-      description: 'Configure Cutoff em 75-90.',
-      targetControl: 'knob-cutoff',
-      details: [
-        'Cutoff alto: som brilhante',
-        'Revela harmônicos ricos do square',
-        'Cria agressividade sonora',
-      ],
-      tip: 'Valores 80-85 são ideais.',
-    },
-    {
-      id: 'lead-resonance',
-      title: 'Ressonância Alta',
-      description: 'Configure Resonance em 50-70.',
-      targetControl: 'knob-resonance',
-      details: [
-        'Ressonância alta: destaque pronunciado',
-        'Cria pico característico',
-        'Adiciona caráter agressivo',
-      ],
-      tip: 'Valores 55-65 criam sons clássicos.',
-    },
-    {
-      id: 'lead-envelope',
-      title: 'Envelope Dinâmico',
-      description: 'Configure Envelope em 40-60.',
-      targetControl: 'knob-envelope',
-      details: [
-        'Envelope forte: varredura agressiva',
-        'Cria movimento dinâmico',
-        'Adiciona expressividade extrema',
-      ],
-      tip: 'Valores 50-55 criam leads expressivos.',
-    },
-    {
-      id: 'lead-slope',
-      title: 'Slope Agressivo',
-      description: 'Configure para 24dB.',
-      targetControl: 'filter-slope',
-      details: [
-        '24dB: filtro mais agressivo',
-        'Cria varreduras dramáticas',
-        'Essencial para hard leads',
-      ],
-      tip: 'Use sempre 24dB para leads duros.',
-    },
-  ],
+export type TutorialClassDef = {
+  initPatch: Partial<Patch>;
+  steps: TutorialStep[];
+  melody?: { timeMs: number, note: string, type: 'on' | 'off' }[];
+};
+
+const CLASS_TUTORIALS: Record<string, TutorialClassDef> = {
+  'class-1': { // Reese Bass
+    initPatch: { wave: 1, tune: 50, detune: 0, cutoff: 100 },
+    steps: [
+      {
+        id: 'reese-wave',
+        title: 'Reese Bass: Forma de Onda',
+        description: 'O som Reese utiliza múltiplas ondas Sawtooth desafinadas.',
+        targetControl: 'wave-select',
+        details: ['A onda Sawtooth (Dente de Serra) gera harmônicos pares e ímpares.'],
+        tip: 'Mude para Saw.',
+        validate: (p) => p?.wave === 2
+      },
+      {
+        id: 'reese-tune',
+        title: 'Reese Bass: Oitava',
+        description: 'Ajuste a oitava do oscilador para a região de sub-graves (-1 ou -2).',
+        targetControl: 'knob-tune',
+        details: ['Frequências baixas são a base do bassline.'],
+        tip: 'Mude a oitava para valores de -1 ou -2.',
+        validate: (p) => p?.tune <= 25 // 25 = -1, 0 = -2
+      },
+      {
+        id: 'reese-detune',
+        title: 'Reese Bass: Detune',
+        description: 'Aplique detune (desafinação) entre 50% e 80% para criar o efeito estéreo de "phasing".',
+        targetControl: 'knob-detune',
+        details: ['O detune alarga a imagem estéreo do som.'],
+        tip: 'Ajuste Detune entre 50% e 80%.',
+        validate: (p) => p?.detune >= 50 && p?.detune <= 80
+      },
+      {
+        id: 'reese-cutoff',
+        title: 'Reese Bass: Filtro Lowpass',
+        description: 'Reduza a frequência de corte (Cutoff) do Filtro para menos de 45%.',
+        targetControl: 'knob-cutoff',
+        details: ['Filtra os harmônicos agudos, retendo as frequências graves.'],
+        tip: 'Abaixe Cutoff para <45%.',
+        validate: (p) => p?.cutoff <= 45
+      }
+    ]
+  },
+  'class-2': { // Lush Pad
+    initPatch: { voices: 1, attack: 10, release: 20 },
+    steps: [
+      {
+        id: 'pad-voices',
+        title: 'Lush Pad: Polifonia',
+        description: 'Aumente o número de vozes (Voices) para 4, permitindo a execução de acordes (tétrades).',
+        targetControl: 'wave-select',
+        details: ['Sintetizadores polifônicos podem reproduzir múltiplas notas simultaneamente.'],
+        tip: 'Selecione 4 Voices.',
+        validate: (p) => p?.voices === 4
+      },
+      {
+        id: 'pad-attack',
+        title: 'Lush Pad: Attack',
+        description: 'Aumente o Attack do Envelope para mais de 60%.',
+        targetControl: 'knob-attack',
+        details: ['Um Attack longo faz o volume aumentar gradualmente.'],
+        tip: 'Attack > 60%.',
+        validate: (p) => p?.attack >= 60
+      },
+      {
+        id: 'pad-release',
+        title: 'Lush Pad: Release',
+        description: 'Aumente o Release para mais de 70%.',
+        targetControl: 'knob-release',
+        details: ['Um Release alto prolonga o som após a tecla ser solta.'],
+        tip: 'Release > 70%.',
+        validate: (p) => p?.release >= 70
+      }
+    ]
+  },
+  'class-3': { // Rave Lead
+    initPatch: { wave: 1, resonance: 0, envelope: 0 },
+    steps: [
+      {
+        id: 'rave-wave',
+        title: 'Rave Lead: Square Wave',
+        description: 'Selecione a forma de onda Square (Quadrada).',
+        targetControl: 'wave-select',
+        details: ['A onda Square contém apenas harmônicos ímpares.'],
+        tip: 'Onda Square.',
+        validate: (p) => p?.wave === 0
+      },
+      {
+        id: 'rave-resonance',
+        title: 'Rave Lead: Ressonância',
+        description: 'Aumente a Ressonância (Res.) do filtro para mais de 75%.',
+        targetControl: 'knob-resonance',
+        details: ['A ressonância cria um pico de ganho na frequência de corte.'],
+        tip: 'Res. > 75%',
+        validate: (p) => p?.resonance >= 75
+      },
+      {
+        id: 'rave-envelope',
+        title: 'Rave Lead: Envelope do Filtro',
+        description: 'Aumente a modulação do Envelope (Env.) para mais de 60%.',
+        targetControl: 'knob-envelope',
+        details: ['Aplica o formato do ADSR à frequência de corte do filtro.'],
+        tip: 'Env > 60%',
+        validate: (p) => p?.envelope >= 60
+      }
+    ]
+  },
+  'class-4': { // Jump Brass
+    initPatch: { wave: 0, tune: 50, detune: 0, cutoff: 50, resonance: 0, attack: 0, decay: 50, sustain: 50, release: 20 },
+    melody: JUMP_MELODY,
+    steps: [
+      {
+        id: 'jump-wave',
+        title: 'Jump Brass: Sawtooth',
+        description: 'O timbre da música "Jump" (Van Halen) utiliza a onda Sawtooth.',
+        targetControl: 'wave-select',
+        details: ['Sawtooth é comum na síntese de timbres de metais (brass).'],
+        tip: 'Selecione a onda Saw.',
+        validate: (p) => p?.wave === 2
+      },
+      {
+        id: 'jump-detune',
+        title: 'Jump Brass: Detune',
+        description: 'Aumente o Detune para pelo menos 40%.',
+        targetControl: 'knob-detune',
+        details: ['Simula a desafinação natural entre múltiplos instrumentos.'],
+        tip: 'Detune > 40%',
+        validate: (p) => p?.detune >= 40
+      },
+      {
+        id: 'jump-cutoff',
+        title: 'Jump Brass: Filtro Aberto',
+        description: 'Eleve o Cutoff para mais de 80%.',
+        targetControl: 'knob-cutoff',
+        details: ['Filtros abertos permitem a passagem das altas frequências.'],
+        tip: 'Cutoff > 80%',
+        validate: (p) => p?.cutoff >= 80
+      }
+    ]
+  },
+  'class-5': { // Take On Me Lead
+    initPatch: { wave: 2, voices: 1, attack: 50, decay: 50, sustain: 50, release: 50, cutoff: 100 },
+    melody: TAKE_ON_ME_MELODY,
+    steps: [
+      {
+        id: 'takeonme-wave',
+        title: 'Synth Pop: Square Wave',
+        description: 'A melodia principal de "Take On Me" (A-ha) é sintetizada com uma onda Square.',
+        targetControl: 'wave-select',
+        details: ['A onda Square apresenta um timbre característico e anasalado.'],
+        tip: 'Selecione a onda Square.',
+        validate: (p) => p?.wave === 0
+      },
+      {
+        id: 'takeonme-env',
+        title: 'Synth Pop: Pluck',
+        description: 'Reduza o Sustain para 0% e o Decay para menos de 40%.',
+        targetControl: 'knob-sustain',
+        details: ['Envelopes sem sustain formam o comportamento de instrumentos percussivos (Pluck).'],
+        tip: 'Sustain = 0% e Decay < 40%',
+        validate: (p) => p?.sustain === 0 && p?.decay <= 40
+      }
+    ]
+  }
 };
 
 interface IntegratedTutorialProps {
@@ -680,6 +191,9 @@ interface IntegratedTutorialProps {
   onTaskComplete: (taskId: string) => void;
   onHighlightChange?: (controlId: string | null) => void;
   onClassComplete?: (classId: string) => void;
+  onInitPatch?: (initPatch: Partial<Patch>) => void;
+  onPlayMelody?: (melody: NoteEvent[]) => (() => void);
+  patch?: any; // Contains the current synth parameters
 }
 
 export function IntegratedTutorial({
@@ -689,13 +203,27 @@ export function IntegratedTutorial({
   onTaskComplete,
   onHighlightChange,
   onClassComplete,
+  onInitPatch,
+  onPlayMelody,
+  patch,
 }: IntegratedTutorialProps) {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [stopMelody, setStopMelody] = useState<(() => void) | null>(null);
 
-  const tutorials = selectedClass ? CLASS_TUTORIALS[selectedClass] : [];
+  const tutorialDef = selectedClass ? CLASS_TUTORIALS[selectedClass] : null;
+  const tutorials = tutorialDef?.steps || [];
   const currentStep = tutorials[currentStepIndex];
   const totalSteps = tutorials.length;
   const isCompleted = currentStep ? completedTasks.has(currentStep.id) : false;
+
+  // Reseta o index quando a classe muda e envia o patch inicial de inicialização para não pular as tarefas prontas
+  useEffect(() => {
+    setCurrentStepIndex(0);
+    if (onInitPatch) {
+      onInitPatch(tutorialDef?.initPatch || {});
+    }
+  }, [selectedClass]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Notify App about the current highlighted control
   useEffect(() => {
@@ -704,23 +232,23 @@ export function IntegratedTutorial({
     }
   }, [currentStepIndex, currentStep, onHighlightChange]);
 
-  // Auto-advance to next step when current step is completed
+  // Validation Check: Auto-complete task if user moves knob to correct position
   useEffect(() => {
-    if (isCompleted) {
-      if (currentStepIndex < totalSteps - 1) {
-        const timer = setTimeout(() => {
-          setCurrentStepIndex(currentStepIndex + 1);
-        }, 500);
-        return () => clearTimeout(timer);
-      } else if (onClassComplete && selectedClass) {
-        // Last step completed, wait a bit then complete class
-        const timer = setTimeout(() => {
-          onClassComplete(selectedClass);
-        }, 1000);
-        return () => clearTimeout(timer);
+    if (currentStep && !isCompleted && patch && currentStep.validate) {
+      if (currentStep.validate(patch)) {
+        onTaskComplete(currentStep.id);
       }
     }
-  }, [isCompleted, currentStepIndex, totalSteps, onClassComplete, selectedClass]);
+  }, [patch, currentStep, isCompleted, onTaskComplete]);
+
+  // User advances manually using button
+  const advanceTutorial = () => {
+    if (currentStepIndex < totalSteps - 1) {
+      setCurrentStepIndex(currentStepIndex + 1);
+    } else if (onClassComplete && selectedClass) {
+      onClassComplete(selectedClass);
+    }
+  };
 
   if (!selectedClass || !currentStep) {
     return null;
@@ -740,6 +268,21 @@ export function IntegratedTutorial({
 
   const goToStep = (index: number) => {
     setCurrentStepIndex(index);
+  };
+
+  const handlePlayToggle = () => {
+    if (isPlaying && stopMelody) {
+      stopMelody();
+      setIsPlaying(false);
+      setStopMelody(null);
+    } else if (onPlayMelody && tutorialDef?.melody) {
+      setIsPlaying(true);
+      const stopFn = onPlayMelody(tutorialDef.melody);
+      // Auto stop simulation for UI state (rough estimate)
+      const maxTime = Math.max(...tutorialDef.melody.map(m => m.timeMs));
+      setTimeout(() => setIsPlaying(false), maxTime + 500);
+      setStopMelody(() => stopFn);
+    }
   };
 
   return (
@@ -771,9 +314,32 @@ export function IntegratedTutorial({
           ))}
         </ul>
 
-        <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 flex gap-3 mt-auto">
-          <Lightbulb size={18} className="text-primary flex-shrink-0" />
-          <p className="text-xs text-primary font-medium">{currentStep.tip}</p>
+        <div className={`border rounded-lg p-4 flex gap-3 mt-auto transition-colors duration-500 ${isCompleted ? 'bg-green-500/10 border-green-500/30' : 'bg-primary/5 border-primary/20'}`}>
+          <div className="flex flex-col flex-1 gap-2">
+            <div className="flex gap-3">
+              <Lightbulb size={18} className={`flex-shrink-0 ${isCompleted ? 'text-green-500' : 'text-primary'}`} />
+              <p className={`text-xs font-medium ${isCompleted ? 'text-green-500' : 'text-primary'}`}>
+                {isCompleted ? 'Excelente! Tarefa concluída.' : currentStep.tip}
+              </p>
+            </div>
+            {isCompleted && currentStepIndex === totalSteps - 1 && tutorialDef?.melody && (
+              <button 
+                onClick={handlePlayToggle}
+                className={`mt-2 self-start px-4 py-2 ${isPlaying ? 'bg-red-600 hover:bg-red-700' : 'bg-primary hover:bg-primary/90'} text-white text-xs font-bold rounded-md shadow-sm transition-colors uppercase tracking-widest flex items-center gap-2`}
+              >
+                {isPlaying ? <><Square size={14} /> Parar</> : <><Play size={14} /> Ouvir Melodia</>}
+              </button>
+            )}
+            
+            {isCompleted && (
+              <button 
+                onClick={advanceTutorial}
+                className="mt-2 self-start px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded-md shadow-sm transition-colors uppercase tracking-widest flex items-center gap-2"
+              >
+                {currentStepIndex < totalSteps - 1 ? 'Próxima Etapa' : 'Concluir Aula'} <ArrowRight size={14} />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

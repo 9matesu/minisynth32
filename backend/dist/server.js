@@ -19,7 +19,6 @@ runMigrations();
 const db = getDatabase();
 const synthState = new SynthStateManager();
 const serial = new SerialService({
-    mock: appConfig.env.serialMock,
     port: appConfig.env.serialPort,
     baudRate: appConfig.env.serialBaudRate,
 });
@@ -45,7 +44,8 @@ synthState.onChanged((change) => {
     if (change.source !== 'serial') {
         return;
     }
-    logger.info('Synth state changed from serial', { path: change.path, value: change.value });
+    // Suppress verbose state_update logs to clean up terminal
+    // logger.info('Synth state changed from serial', { path: change.path, value: change.value });
 });
 serial.onMessage((message) => {
     switch (message.type) {
@@ -54,13 +54,20 @@ serial.onMessage((message) => {
             synthState.setParam(message.path, message.value, 'serial');
             break;
         case 'heartbeat':
-            logger.info('ESP32 heartbeat', { uptime: message.uptime });
+            // Suppress verbose heartbeat logs
+            // logger.info('ESP32 heartbeat', { uptime: message.uptime });
             break;
         case 'ack':
             logger.info('ESP32 ack', { path: message.path, ok: message.ok });
             break;
         case 'log':
             logger[message.level](message.message);
+            break;
+        case 'note_on':
+            logger.info('ESP32 note on', { note: message.note, freq: message.freq });
+            break;
+        case 'note_off':
+            logger.info('ESP32 note off');
             break;
     }
 });

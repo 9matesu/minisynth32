@@ -5,13 +5,24 @@
 
 // ── Synth state ──────────────────────────────────────────────
 
-export type Waveform = 'square' | 'sine' | 'saw' | 'noise';
+export interface UserProfile {
+  id: number;
+  username: string;
+  xp: number;
+  completedTasks: string[];
+  settings: Record<string, any>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type Waveform = 'square' | 'sine' | 'saw' | 'triangle';
 export type FilterSlope = 12 | 24;
 export type SynthParamSource = 'frontend' | 'serial' | 'preset' | 'system';
 
 export type SynthParamPath =
   | 'osc1.waveform'
   | 'osc1.octave'
+  | 'osc1.detune'
   | 'osc1.volume'
   | 'filter.enabled'
   | 'filter.cutoff'
@@ -25,11 +36,13 @@ export type SynthParamPath =
   | 'arpeggiator.enabled'
   | 'arpeggiator.rate'
   | 'global.midiChannel'
-  | 'waveDisplay.samples';
+  | 'global.voices'
+  | 'global.multiCore';
 
 export interface Osc1State {
   waveform: Waveform;
   octave: number;
+  detune: number;
   volume: number;
 }
 
@@ -55,10 +68,8 @@ export interface ArpeggiatorState {
 
 export interface GlobalState {
   midiChannel: number;
-}
-
-export interface WaveDisplayState {
-  samples: number[];
+  voices: number;
+  multiCore: boolean;
 }
 
 export interface SynthState {
@@ -67,16 +78,14 @@ export interface SynthState {
   ampAdsr: AmpAdsrState;
   arpeggiator: ArpeggiatorState;
   global: GlobalState;
-  waveDisplay: WaveDisplayState;
 }
 
 export const DEFAULT_SYNTH_STATE: SynthState = {
-  osc1: { waveform: 'square', octave: 0, volume: 72 },
+  osc1: { waveform: 'square', octave: 0, detune: 0, volume: 72 },
   filter: { enabled: true, cutoff: 58, resonance: 36, slope: 12, envelope: 42 },
   ampAdsr: { attack: 12, decay: 46, sustain: 78, release: 34 },
   arpeggiator: { enabled: false, rate: 8 },
-  global: { midiChannel: 1 },
-  waveDisplay: { samples: [] },
+  global: { midiChannel: 1, voices: 4, multiCore: true },
 };
 
 // ── Presets ───────────────────────────────────────────────────
@@ -103,6 +112,7 @@ export type SerialStatus = 'connecting' | 'connected' | 'disconnected' | 'error'
 export interface SerialStatusPayload {
   status: SerialStatus;
   port?: string;
+  error?: string;
 }
 
 // ── WebSocket envelope ───────────────────────────────────────
@@ -115,11 +125,13 @@ export type WebSocketEventName =
   | 'preset:save'
   | 'preset:load'
   | 'preset:list'
+  | 'preset:delete'
   | 'serial:status'
   | 'serial:error'
   | 'system:error'
   | 'note:on'
-  | 'note:off';
+  | 'note:off'
+  | 'panic';
 
 export interface WsEnvelope<TPayload = unknown> {
   event: WebSocketEventName;

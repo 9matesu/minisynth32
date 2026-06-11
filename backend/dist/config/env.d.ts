@@ -4,8 +4,7 @@ export declare const env: {
     port: number;
     corsOrigin: string;
     databasePath: string;
-    serialMock: boolean;
-    serialPort: string;
+    serialPort: string | undefined;
     serialBaudRate: number;
     frontendDist: string;
 };

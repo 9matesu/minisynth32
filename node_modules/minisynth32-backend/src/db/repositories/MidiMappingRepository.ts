@@ -1,13 +1,13 @@
-import type { DatabaseSync } from 'node:sqlite';
+import type { Database } from 'better-sqlite3';
 import type { MidiMappingEntity, MidiMappingRecord } from '../../models/midiMapping.js';
 import type { CreateMidiMappingDto } from '../../types/dtos.js';
 import { NotFoundError } from '../../utils/errors.js';
 
 export class MidiMappingRepository {
-  constructor(private readonly db: DatabaseSync) {}
+  constructor(private readonly db: Database) {}
 
   findAll(): MidiMappingEntity[] {
-    const rows = this.db.prepare('SELECT * FROM midi_mappings ORDER BY id ASC').all() as unknown as MidiMappingRecord[];
+    const rows = this.db.prepare('SELECT * FROM midi_mappings ORDER BY id ASC').all() as MidiMappingRecord[];
     return rows.map(this.toEntity);
   }
 
@@ -18,7 +18,7 @@ export class MidiMappingRepository {
 
     const row = this.db
       .prepare('SELECT * FROM midi_mappings WHERE id = ?')
-      .get(Number(result.lastInsertRowid)) as unknown as MidiMappingRecord;
+      .get(Number(result.lastInsertRowid)) as MidiMappingRecord;
 
     return this.toEntity(row);
   }

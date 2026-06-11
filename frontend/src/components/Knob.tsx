@@ -11,7 +11,7 @@ type KnobProps = {
   step?: number;
 };
 
-export function Knob({ label, value, onChange, formatValue, hideValue, step }: KnobProps) {
+export function Knob({ label, value, onChange, formatValue, hideValue, step, helpText, helpMode }: KnobProps) {
   const [localValue, setLocalValue] = useState(value);
   const startYRef = useRef(0);
   const startValRef = useRef(0);
@@ -79,7 +79,7 @@ export function Knob({ label, value, onChange, formatValue, hideValue, step }: K
   const dashoffset = arcLength - (localValue / 100) * arcLength;
 
   return (
-    <div className="flex flex-col items-center gap-1.5">
+    <div className="flex flex-col items-center gap-1.5 relative group/knob">
       <div
         className="relative flex items-center justify-center cursor-ns-resize outline-none group"
         role="slider"
@@ -126,6 +126,16 @@ export function Knob({ label, value, onChange, formatValue, hideValue, step }: K
       )}
 
       {label && <span className="text-[9px] font-bold text-textDim uppercase tracking-widest">{label}</span>}
+
+      {helpMode && helpText && (
+        <div className="absolute left-1/2 -translate-x-1/2 top-full mt-3 hidden group-hover/knob:flex flex-col items-center z-50 w-48 pointer-events-none animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="w-2.5 h-2.5 bg-primary/95 rotate-45 -mb-1.5 z-10" />
+          <div className="bg-primary/95 text-white shadow-xl rounded-lg p-3 text-left w-full relative z-20">
+            <h4 className="text-[10px] font-bold uppercase tracking-widest text-white/80 mb-1">{label}</h4>
+            <p className="text-xs leading-relaxed">{helpText}</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

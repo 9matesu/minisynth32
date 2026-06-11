@@ -1,7 +1,8 @@
 export const defaultSynthState = {
     osc1: {
-        waveform: 'square',
+        waveform: 'saw',
         octave: 0,
+        detune: 0,
         volume: 72,
     },
     filter: {
@@ -23,9 +24,8 @@ export const defaultSynthState = {
     },
     global: {
         midiChannel: 1,
-    },
-    waveDisplay: {
-        samples: [],
-    },
+        voices: 4,
+        multiCore: true,
+    }
 };
 //# sourceMappingURL=synth.js.map

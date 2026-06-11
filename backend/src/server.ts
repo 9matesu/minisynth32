@@ -5,15 +5,18 @@ import { HealthController } from './controllers/healthController.js';
 import { MidiMappingController } from './controllers/midiMappingController.js';
 import { PresetController } from './controllers/presetController.js';
 import { SynthController } from './controllers/synthController.js';
+import { UserController } from './controllers/userController.js';
 import { runMigrations } from './db/migrate.js';
 import { getDatabase } from './db/sqlite/connection.js';
 import { MidiMappingRepository } from './db/repositories/MidiMappingRepository.js';
 import { PresetRepository } from './db/repositories/PresetRepository.js';
+import { UserRepository } from './db/repositories/UserRepository.js';
 import { MidiMappingService } from './services/midi/MidiMappingService.js';
 import { PresetService } from './services/presets/PresetService.js';
 import { SerialService } from './services/serial/SerialService.js';
 import { SynthStateManager } from './services/synth-state/SynthStateManager.js';
 import { WebSocketService } from './services/websocket/WebSocketService.js';
+import { UserService } from './services/user/UserService.js';
 import { logger } from './utils/logger.js';
 
 runMigrations();
@@ -27,6 +30,7 @@ const serial = new SerialService({
 
 const presetService = new PresetService(new PresetRepository(db));
 const midiMappingService = new MidiMappingService(new MidiMappingRepository(db));
+const userService = new UserService(new UserRepository(db));
 
 const app = createApp({
   controllers: {
@@ -34,6 +38,7 @@ const app = createApp({
     presets: new PresetController(presetService, synthState),
     midiMappings: new MidiMappingController(midiMappingService),
     synth: new SynthController(synthState, serial),
+    user: new UserController(userService),
   },
 });
 

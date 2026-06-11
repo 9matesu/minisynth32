@@ -11,33 +11,33 @@ export interface TutorialClass {
 export const TUTORIAL_CLASSES: TutorialClass[] = [
   {
     id: 'class-1',
-    name: 'Exploração Básica',
-    description: 'Aprenda os controles e funcionalidades.',
-    icon: Compass,
+    name: 'Reese Bass',
+    description: 'Um baixo pesado e turbulento para drum & bass.',
+    icon: Flame,
   },
   {
     id: 'class-2',
-    name: 'Lead Senoidal',
-    description: 'Crie um lead suave com onda senoidal.',
-    icon: Zap,
-  },
-  {
-    id: 'class-3',
-    name: 'Pad Atmosférico',
-    description: 'Crie um pad evolutivo e ressonante.',
+    name: 'Lush Pad',
+    description: 'Crie um pad de acordes celestiais com 4 vozes.',
     icon: Cloud,
   },
   {
+    id: 'class-3',
+    name: 'Rave Lead',
+    description: 'Pluck ácido de ondas quadradas para eletrônica.',
+    icon: Zap,
+  },
+  {
     id: 'class-4',
-    name: 'Snare Percussivo',
-    description: 'Crie um som de bateria com ruído.',
-    icon: Drum,
+    name: 'Jump Brass',
+    description: 'Timbre massivo de brass sintetizado (Van Halen).',
+    icon: Flame,
   },
   {
     id: 'class-5',
-    name: 'Lead Agressivo',
-    description: 'Crie um lead cortante com onda square.',
-    icon: Flame,
+    name: 'Synth Pop Lead',
+    description: 'O famoso riff vibrante dos anos 80 (A-ha).',
+    icon: Zap,
   },
 ];
 

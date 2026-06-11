@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { HelpTooltip } from '../HelpTooltip';
 
 export interface PianoKey {
   note: string;
@@ -12,14 +13,36 @@ interface KeyboardModuleProps {
   activeNotes: Set<string>;
   onNoteOn: (note: string) => void;
   onNoteOff: (note: string) => void;
+  onOctaveDown: () => void;
+  onOctaveUp: () => void;
 }
 
-export function KeyboardModule({ keys, activeNotes, onNoteOn, onNoteOff }: KeyboardModuleProps) {
+export function KeyboardModule({ keys, activeNotes, onNoteOn, onNoteOff, onOctaveDown, onOctaveUp }: KeyboardModuleProps) {
   return (
     <div className="border border-border bg-panel p-6 rounded-2xl flex flex-col gap-6 shadow-sm w-full">
-      <h3 className="text-[10px] font-bold tracking-widest uppercase text-textDim border-b border-border pb-3">Keyboard</h3>
+      <div className="flex items-center border-b border-border pb-3">
+        <h3 className="text-[10px] font-bold tracking-widest uppercase text-textDim">Teclado</h3>
+      </div>
       
-      <div className="relative h-40 w-full flex justify-center">
+      <div className="relative h-40 w-full flex justify-center gap-6">
+        {/* Octave Controls */}
+        <div className="flex flex-col justify-between h-full py-1">
+          <button 
+            onClick={onOctaveUp}
+            className="flex flex-col items-center justify-center bg-background border border-border hover:bg-border transition-colors rounded-lg h-[48%] w-14 shadow-sm"
+          >
+            <span className="text-[9px] font-bold text-text">+1 OIT</span>
+            <span className="text-[10px] font-mono font-bold text-primary mt-1 border border-border rounded px-1.5">X</span>
+          </button>
+          <button 
+            onClick={onOctaveDown}
+            className="flex flex-col items-center justify-center bg-background border border-border hover:bg-border transition-colors rounded-lg h-[48%] w-14 shadow-sm"
+          >
+            <span className="text-[9px] font-bold text-text">-1 OIT</span>
+            <span className="text-[10px] font-mono font-bold text-primary mt-1 border border-border rounded px-1.5">Z</span>
+          </button>
+        </div>
+
         <div className="flex relative select-none touch-none">
           {keys.map((k, i) => {
             if (k.isBlack) return null; // We render white keys first, black keys absolute positioned

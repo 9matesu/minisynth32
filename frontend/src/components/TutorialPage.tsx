@@ -8,7 +8,7 @@ const TUTORIAL_STEPS = [
       'Square (quadrada): som brilhante e percussivo',
       'Sine (senoidal): som puro e macio',
       'Saw (dente de serra): som rico em harmonicos',
-      'Noise (ruido): som ruidoso e metalico',
+      'Triangle (triangular): som puro e oco',
     ],
     tip: 'Comece com Sine para entender harmonicos basicos.',
   },

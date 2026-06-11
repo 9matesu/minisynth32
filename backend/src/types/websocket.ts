@@ -12,9 +12,11 @@ export type WebSocketEventName =
   | 'preset:save'
   | 'preset:load'
   | 'preset:list'
+  | 'preset:delete'
   | 'serial:status'
   | 'serial:error'
-  | 'system:error';
+  | 'system:error'
+  | 'panic';
 
 export interface WsEnvelope<TEvent extends WebSocketEventName = WebSocketEventName, TPayload = unknown> {
   event: TEvent;

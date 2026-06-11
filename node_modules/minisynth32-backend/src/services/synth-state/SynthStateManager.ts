@@ -50,6 +50,7 @@ export class SynthStateManager {
     return [
       ['osc1.waveform', state.osc1.waveform],
       ['osc1.octave', state.osc1.octave],
+      ['osc1.detune', state.osc1.detune],
       ['osc1.volume', state.osc1.volume],
       ['filter.enabled', state.filter.enabled],
       ['filter.cutoff', state.filter.cutoff],
@@ -63,7 +64,8 @@ export class SynthStateManager {
       ['arpeggiator.enabled', state.arpeggiator.enabled],
       ['arpeggiator.rate', state.arpeggiator.rate],
       ['global.midiChannel', state.global.midiChannel],
-      ['waveDisplay.samples', state.waveDisplay.samples],
+      ['global.voices', state.global.voices],
+      ['global.multiCore', state.global.multiCore],
     ];
   }
 }

@@ -6,7 +6,6 @@ export function FrontPage({ onNavigate, onLearn }: { onNavigate: (view: 'synth' 
       <div className="max-w-[600px] w-full flex flex-col items-center gap-12">
         <div className="text-center animate-in fade-in slide-in-from-top-4 duration-700">
           <h1 className="text-5xl font-black text-text uppercase tracking-widest mb-2">minisynth32</h1>
-          <p className="text-sm font-bold text-textDim tracking-widest uppercase">Volt-Ampère Engine</p>
         </div>
 
         <div className="text-center animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150">

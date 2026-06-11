@@ -5,6 +5,7 @@ const waveforms: Waveform[] = ['sine', 'saw', 'square', 'triangle'];
 const paramPaths = new Set<SynthParamPath>([
   'osc1.waveform',
   'osc1.octave',
+  'osc1.detune',
   'osc1.volume',
   'filter.enabled',
   'filter.cutoff',
@@ -18,7 +19,8 @@ const paramPaths = new Set<SynthParamPath>([
   'arpeggiator.enabled',
   'arpeggiator.rate',
   'global.midiChannel',
-  'waveDisplay.samples',
+  'global.voices',
+  'global.multiCore'
 ]);
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -55,6 +57,7 @@ export const validateParamValue = (path: SynthParamPath, value: unknown) => {
     case 'osc1.octave':
       expectNumber(path, value, -2, 2);
       return;
+    case 'osc1.detune':
     case 'osc1.volume':
     case 'filter.cutoff':
     case 'filter.resonance':
@@ -67,6 +70,7 @@ export const validateParamValue = (path: SynthParamPath, value: unknown) => {
       return;
     case 'filter.enabled':
     case 'arpeggiator.enabled':
+    case 'global.multiCore':
       expectBoolean(path, value);
       return;
     case 'filter.slope':
@@ -80,10 +84,8 @@ export const validateParamValue = (path: SynthParamPath, value: unknown) => {
     case 'global.midiChannel':
       expectNumber(path, value, 1, 16);
       return;
-    case 'waveDisplay.samples':
-      if (!Array.isArray(value) || value.some((sample) => typeof sample !== 'number' || sample < -1 || sample > 1)) {
-        throw new ValidationError('A tela de onda espera amostras numericas entre -1 e 1.', { path, value });
-      }
+    case 'global.voices':
+      expectNumber(path, value, 1, 4);
       return;
   }
 };
@@ -93,7 +95,7 @@ export const validateSynthState = (state: unknown): SynthState => {
     throw new ValidationError('Estado do synth invalido.');
   }
 
-  const requiredGroups = ['osc1', 'filter', 'ampAdsr', 'arpeggiator', 'global', 'waveDisplay'];
+  const requiredGroups = ['osc1', 'filter', 'ampAdsr', 'arpeggiator', 'global'];
   for (const group of requiredGroups) {
     if (!isRecord(state[group])) {
       throw new ValidationError(`Grupo ausente ou invalido: ${group}`);

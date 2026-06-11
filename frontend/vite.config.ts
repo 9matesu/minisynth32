@@ -25,6 +25,14 @@ export default defineConfig({
       '/ws': {
         target: 'ws://localhost:3333',
         ws: true,
+        // Suppress ECONNRESET when backend restarts or WS drops
+        configure: (proxy) => {
+          proxy.on('error', (_err, _req, res) => {
+            if (res && 'writeHead' in res && typeof res.writeHead === 'function') {
+              try { res.writeHead(502); res.end(); } catch { /* already closed */ }
+            }
+          });
+        },
       },
     },
   },

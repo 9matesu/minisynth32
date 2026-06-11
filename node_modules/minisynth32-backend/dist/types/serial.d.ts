@@ -1,5 +1,5 @@
 import type { SynthParamPath } from './synth.js';
-export type SerialStatus = 'mock' | 'connecting' | 'connected' | 'disconnected' | 'error';
+export type SerialStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
 export type SerialMessage = {
     type: 'param_set';
     path: SynthParamPath;
@@ -20,9 +20,19 @@ export type SerialMessage = {
     type: 'log';
     level: 'info' | 'warn' | 'error';
     message: string;
+} | {
+    type: 'note_on';
+    note: string;
+    freq: number;
+} | {
+    type: 'note_off';
+    note: string;
+    freq: number;
+} | {
+    type: 'panic';
 };
 export interface SerialStatusPayload {
     status: SerialStatus;
     port?: string;
-    mock: boolean;
+    error?: string;
 }

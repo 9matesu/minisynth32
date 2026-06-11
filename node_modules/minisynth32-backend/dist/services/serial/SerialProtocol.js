@@ -42,6 +42,20 @@ export const parseSerialLine = (line) => {
                 level: parsed.level === 'warn' || parsed.level === 'error' ? parsed.level : 'info',
                 message: typeof parsed.message === 'string' ? parsed.message : '',
             };
+        case 'note_on':
+            return {
+                type: 'note_on',
+                note: typeof parsed.note === 'string' ? parsed.note : '',
+                freq: Number(parsed.freq ?? 0),
+            };
+        case 'note_off':
+            return {
+                type: 'note_off',
+                note: typeof parsed.note === 'string' ? parsed.note : '',
+                freq: Number(parsed.freq ?? 0)
+            };
+        case 'panic':
+            return { type: 'panic' };
         default:
             throw new ValidationError(`Tipo serial desconhecido: ${parsed.type}`, parsed);
     }

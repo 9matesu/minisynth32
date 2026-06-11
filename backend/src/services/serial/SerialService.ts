@@ -124,6 +124,10 @@ export class SerialService {
     this.write({ type: 'note_off', note, freq });
   }
 
+  sendPanic() {
+    this.write({ type: 'panic' });
+  }
+
   write(message: SerialMessage) {
     const encoded = encodeSerialMessage(message);
 
@@ -156,8 +160,13 @@ export class SerialService {
   }
 
   private handleLine(line: string) {
+    const trimmed = line.trim();
+    if (!trimmed || !trimmed.startsWith('{')) {
+      // Silently skip non-JSON lines (ESP32 boot messages, AudioTools debug output, etc.)
+      return;
+    }
     try {
-      const message = parseSerialLine(line.trim());
+      const message = parseSerialLine(trimmed);
       this.events.emit('message', message);
     } catch (error) {
       // Ignore serial noise/parse errors instead of dropping the connection
