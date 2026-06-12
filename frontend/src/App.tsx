@@ -306,7 +306,7 @@ export default function App() {
                       const currentMatch = classId.match(/\d+/);
                       if (currentMatch) {
                         const nextId = parseInt(currentMatch[0]) + 1;
-                        if (nextId <= 3) { // Passa para a próxima aula
+                        if (nextId <= 5) { // Passa para a próxima aula
                           setSelectedClass(`class-${nextId}`);
                           return;
                         }
@@ -314,7 +314,7 @@ export default function App() {
                       
                       setSelectedClass(null);
                       setHighlightedControl(null);
-                      applyInitState();
+                      // applyInitState(); // Remove resetting preset when finishing tutorial
                     }}
                     onInitPatch={applyInitState}
                     selectedClass={selectedClass}

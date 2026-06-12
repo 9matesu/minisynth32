@@ -16,14 +16,14 @@
 
 #define POT_ATTACK     2
 #define POT_DECAY      4
-#define POT_RESONANCE  5
+#define POT_SUSTAIN    5
 #define POT_RELEASE    6
 #define POT_CUTOFF     7
 
-#define BTN_WAVE       36
-#define BTN_ARP        37
-#define BTN_CHORD_MAJ  34
-#define BTN_CHORD_MIN  35
+#define BTN_WAVE       11
+#define BTN_ARP        12
+#define BTN_CHORD_MAJ  13
+#define BTN_CHORD_MIN  14
 
 #define SCREEN_WIDTH   128
 #define SCREEN_HEIGHT  64
@@ -34,7 +34,7 @@
 #define BUFFER_SIZE    1024 
 #define SERIAL_BAUD    115200
 
-#define USE_HARDWARE_KNOBS false // Mude para true quando conectar os potenciometros
+#define USE_HARDWARE_KNOBS true // Mude para true quando conectar os potenciometros
 #define USE_HARDWARE_BUTTONS true // Mude para true quando colocar os botões com resistores pull-down!
 
 // Task handles
@@ -110,9 +110,9 @@ Voice voices[4];
 
 static uint8_t prevPotAttack = 255;
 static uint8_t prevPotDecay = 255;
+static uint8_t prevPotSustain = 255;
 static uint8_t prevPotRelease = 255;
 static uint8_t prevPotCutoff = 255;
-static uint8_t prevPotResonance = 255;
 
 static bool btnWaveState = false;
 static bool btnArpState = false;
@@ -151,9 +151,9 @@ static bool potChanged(uint8_t newVal, uint8_t &prevVal) {
 
 static uint16_t ema_a = 0;
 static uint16_t ema_d = 0;
+static uint16_t ema_s = 0;
 static uint16_t ema_r = 0;
 static uint16_t ema_c = 0;
-static uint16_t ema_res = 0;
 static uint8_t adcCycle = 0;
 
 static void triggerInternalNoteOn(double freq) {
@@ -186,9 +186,9 @@ static void readControls() {
   if (firstRead) {
     ema_a = analogRead(POT_ATTACK);
     ema_d = analogRead(POT_DECAY);
+    ema_s = analogRead(POT_SUSTAIN);
     ema_r = analogRead(POT_RELEASE);
     ema_c = analogRead(POT_CUTOFF);
-    ema_res = analogRead(POT_RESONANCE);
     firstRead = false;
     return;
   }
@@ -239,12 +239,12 @@ static void readControls() {
     break;
   }
   case 4: {
-    uint16_t res = analogRead(POT_RESONANCE);
-    ema_res = (ema_res * 7 + res) >> 3;
-    uint8_t val = (uint8_t)(((uint32_t)ema_res * 100) >> 12);
-    if (potChanged(val, prevPotResonance)) {
-      s.resonance = val;
-      strncpy(s.lastParamName, "Resonance", 15);
+    uint16_t s_val = analogRead(POT_SUSTAIN);
+    ema_s = (ema_s * 7 + s_val) >> 3;
+    uint8_t val = (uint8_t)(((uint32_t)ema_s * 100) >> 12);
+    if (potChanged(val, prevPotSustain)) {
+      s.sustain = val;
+      strncpy(s.lastParamName, "Sustain", 15);
       snprintf(s.lastParamVal, 15, "%d%%", val);
     }
     break;
@@ -257,7 +257,7 @@ static void readControls() {
 
 static void readButtons() {
   // Read Buttons
-  bool wState = digitalRead(BTN_WAVE) == HIGH;
+  bool wState = digitalRead(BTN_WAVE) == LOW;
   if (wState && !btnWaveState) {
     s.waveIdx = (s.waveIdx + 1) % 4;
     strncpy(s.lastParamName, "Wave", 15);
@@ -265,7 +265,7 @@ static void readButtons() {
   }
   btnWaveState = wState;
 
-  bool arpState = digitalRead(BTN_ARP) == HIGH;
+  bool arpState = digitalRead(BTN_ARP) == LOW;
   if (arpState && !btnArpState) {
     s.arpEnabled = !s.arpEnabled;
     strncpy(s.lastParamName, "Arpeggiator", 15);
@@ -273,7 +273,7 @@ static void readButtons() {
   }
   btnArpState = arpState;
 
-  bool majState = digitalRead(BTN_CHORD_MAJ) == HIGH;
+  bool majState = digitalRead(BTN_CHORD_MAJ) == LOW;
   if (majState && !btnMajState) {
     strncpy(s.lastParamName, "Modifier", 15);
     strncpy(s.lastParamVal, "Maj Held", 15);
@@ -283,7 +283,7 @@ static void readButtons() {
   }
   btnMajState = majState;
 
-  bool minState = digitalRead(BTN_CHORD_MIN) == HIGH;
+  bool minState = digitalRead(BTN_CHORD_MIN) == LOW;
   if (minState && !btnMinState) {
     strncpy(s.lastParamName, "Modifier", 15);
     strncpy(s.lastParamVal, "Min Held", 15);
@@ -296,9 +296,9 @@ static void readButtons() {
 
 static uint8_t sentAttack = 255;
 static uint8_t sentDecay = 255;
+static uint8_t sentSustain = 255;
 static uint8_t sentRelease = 255;
 static uint8_t sentCutoff = 255;
-static uint8_t sentResonance = 255;
 static uint8_t sentWaveIdx = 255;
 static uint8_t sentArp = 255;
 
@@ -319,9 +319,9 @@ static void sendPotChanges() {
     if (sentCutoff != 255) Serial.printf("{\"type\":\"state_update\",\"path\":\"filter.cutoff\",\"value\":%d}\n", s.cutoff);
     sentCutoff = s.cutoff;
   }
-  if (s.resonance != sentResonance) {
-    if (sentResonance != 255) Serial.printf("{\"type\":\"state_update\",\"path\":\"filter.resonance\",\"value\":%d}\n", s.resonance);
-    sentResonance = s.resonance;
+  if (s.sustain != sentSustain) {
+    if (sentSustain != 255) Serial.printf("{\"type\":\"state_update\",\"path\":\"ampAdsr.sustain\",\"value\":%d}\n", s.sustain);
+    sentSustain = s.sustain;
   }
   if (s.waveIdx != sentWaveIdx) {
     if (sentWaveIdx != 255) Serial.printf("{\"type\":\"state_update\",\"path\":\"osc1.waveform\",\"value\":\"%s\"}\n", waveNameLower(s.waveIdx));
@@ -788,20 +788,20 @@ void setup() {
     analogReadResolution(12);
     analogSetPinAttenuation(POT_ATTACK, ADC_11db);
     analogSetPinAttenuation(POT_DECAY, ADC_11db);
+    analogSetPinAttenuation(POT_SUSTAIN, ADC_11db);
     analogSetPinAttenuation(POT_RELEASE, ADC_11db);
     analogSetPinAttenuation(POT_CUTOFF, ADC_11db);
-    analogSetPinAttenuation(POT_RESONANCE, ADC_11db);
 
     pinMode(POT_ATTACK, INPUT);
     pinMode(POT_DECAY, INPUT);
+    pinMode(POT_SUSTAIN, INPUT);
     pinMode(POT_RELEASE, INPUT);
     pinMode(POT_CUTOFF, INPUT);
-    pinMode(POT_RESONANCE, INPUT);
 
-    pinMode(BTN_WAVE, INPUT);
-    pinMode(BTN_ARP, INPUT);
-    pinMode(BTN_CHORD_MAJ, INPUT);
-    pinMode(BTN_CHORD_MIN, INPUT);
+    pinMode(BTN_WAVE, INPUT_PULLUP);
+    pinMode(BTN_ARP, INPUT_PULLUP);
+    pinMode(BTN_CHORD_MAJ, INPUT_PULLUP);
+    pinMode(BTN_CHORD_MIN, INPUT_PULLUP);
 
     Wire.begin(OLED_SDA, OLED_SCL);
     delay(250);
